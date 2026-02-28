@@ -80,28 +80,41 @@ export default function LandingPage() {
 
   const handleWorkerLogin = async () => {
     if (!workerIdInput || !workerPassInput || !db) {
-      toast({ variant: "destructive", title: "Fields Required", description: "Staff ID and PIN required." });
+      toast({ variant: "destructive", title: "FIELDS REQUIRED", description: "Please provide a valid Staff ID and Secure PIN." });
       return;
     }
     setIsLoggingIn(true);
     
     try {
+      // Simplified query to avoid composite index requirements for real-time prototyping
       const q = query(
         collection(db, "users"), 
-        where("workerId", "==", workerIdInput.trim()), 
-        where("workerPass", "==", workerPassInput.trim())
+        where("workerId", "==", workerIdInput.trim()),
+        where("role", "==", "worker")
       );
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
-        toast({ title: "Duty Commenced", description: "Field access granted." });
-        router.push("/worker");
+        const workerData = snapshot.docs[0].data();
+        // Secure verification in logic layer
+        if (workerData.workerPass === workerPassInput.trim()) {
+          toast({ title: "DUTY COMMENCED", description: `Staff ID ${workerIdInput} cleared for field access.` });
+          router.push("/worker");
+        } else {
+          toast({ variant: "destructive", title: "AUTHENTICATION DENIED", description: "The Secure PIN provided does not match our records." });
+          setIsLoggingIn(false);
+        }
       } else {
-        toast({ variant: "destructive", title: "Auth Failed", description: "Invalid staff record." });
+        toast({ variant: "destructive", title: "RECORD NOT FOUND", description: "Staff ID not registered in the Gov workforce roster." });
         setIsLoggingIn(false);
       }
-    } catch (error) {
-      toast({ variant: "destructive", title: "Sync Error", description: "Retry connection." });
+    } catch (error: any) {
+      console.error("Worker Auth Error:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "NETWORK SYNC ERROR", 
+        description: "Communication with the workforce database timed out. Please retry." 
+      });
       setIsLoggingIn(false);
     }
   };

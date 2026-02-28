@@ -1,9 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // GLOBAL EMERGENCY ACCESS MODE: Unlocked for final publication and demo.
-    // This provides a high-reliability bridge between Citizen, Admin, and Workforce modules.
-    // Deployment Identifier: PUB_FINAL_STABLE_102
+    // PUBLIC SECTOR ACCESS: Final deployment unlock for Gov-Tech interoperability.
+    // This allows seamless synchronization between Citizen, Admin, and Workforce modules.
+    // Deployment Identifier: MADURAI_SYNC_PRO_FINAL_V2
     match /{allPaths=**} {
       allow read, write: if true;
     }
