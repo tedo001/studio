@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Report": {
+      "title": "Environmental Report",
+      "description": "A report of an environmental issue captured by a user.",
+      "type": "object",
+      "properties": {
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the uploaded image of the issue."
+        },
+        "aiCategory": {
+          "type": "string",
+          "description": "Category suggested by AI analysis."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High"],
+          "description": "The severity level of the issue."
+        },
+        "timestamp": {
+          "type": "object",
+          "description": "Server timestamp of when the report was created."
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who submitted the report."
+        }
+      },
+      "required": ["imageUrl", "aiCategory", "severity", "timestamp", "userId"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Collection of environmental issue reports."
+    }
+  }
+}

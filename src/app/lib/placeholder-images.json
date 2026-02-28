@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "cleanup-1",
+      "description": "A pile of litter in a park",
+      "imageUrl": "https://picsum.photos/seed/cleanup1/600/400",
+      "imageHint": "litter park"
+    },
+    {
+      "id": "cleanup-2",
+      "description": "Illegal dumping on a street corner",
+      "imageUrl": "https://picsum.photos/seed/cleanup2/600/400",
+      "imageHint": "illegal dumping"
+    },
+    {
+      "id": "cleanup-3",
+      "description": "Water pollution in a local pond",
+      "imageUrl": "https://picsum.photos/seed/cleanup3/600/400",
+      "imageHint": "water pollution"
+    }
+  ]
+}
