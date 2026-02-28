@@ -80,13 +80,14 @@ export default function LandingPage() {
 
   const handleWorkerLogin = async () => {
     if (!workerIdInput || !workerPassInput || !db) {
-      toast({ variant: "destructive", title: "FIELDS REQUIRED", description: "Please provide a valid Staff ID and Secure PIN." });
+      toast({ variant: "destructive", title: "INPUT REQUIRED", description: "Staff ID and Secure PIN are mandatory for duty login." });
       return;
     }
+    
     setIsLoggingIn(true);
     
     try {
-      // Simplified query to avoid composite index requirements for real-time prototyping
+      // Robust query searching for the specific worker profile
       const q = query(
         collection(db, "users"), 
         where("workerId", "==", workerIdInput.trim())
@@ -94,30 +95,33 @@ export default function LandingPage() {
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
+        // Find the record that is explicitly marked with the 'worker' role
         const workerDoc = snapshot.docs.find(d => d.data().role === 'worker');
+        
         if (workerDoc) {
           const workerData = workerDoc.data();
           if (workerData.workerPass === workerPassInput.trim()) {
-            toast({ title: "DUTY COMMENCED", description: `Staff ID ${workerIdInput} cleared for field access.` });
+            toast({ title: "DUTY AUTHENTICATED", description: `Staff ID ${workerIdInput} is cleared for field operations.` });
             router.push("/worker");
           } else {
-            toast({ variant: "destructive", title: "AUTHENTICATION DENIED", description: "The Secure PIN provided does not match our records." });
+            toast({ variant: "destructive", title: "INVALID PIN", description: "The Secure PIN provided is incorrect. Please retry." });
+            setWorkerPassInput(""); // Clear the password for security/retry
             setIsLoggingIn(false);
           }
         } else {
-          toast({ variant: "destructive", title: "RECORD NOT FOUND", description: "Staff ID not registered as a field worker." });
+          toast({ variant: "destructive", title: "ROLE MISMATCH", description: "This ID is registered but not authorized for field duty." });
           setIsLoggingIn(false);
         }
       } else {
-        toast({ variant: "destructive", title: "RECORD NOT FOUND", description: "Staff ID not registered in the Gov workforce roster." });
+        toast({ variant: "destructive", title: "STAFF NOT FOUND", description: "This Staff ID is not registered in the Madurai Gov roster." });
         setIsLoggingIn(false);
       }
     } catch (error: any) {
       console.error("Worker Auth Error:", error);
       toast({ 
         variant: "destructive", 
-        title: "NETWORK SYNC ERROR", 
-        description: "Communication with the workforce database timed out. Please retry." 
+        title: "SYSTEM OFFLINE", 
+        description: "Unable to reach the secure database. Please check your network and try again." 
       });
       setIsLoggingIn(false);
     }

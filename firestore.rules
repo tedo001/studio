@@ -1,9 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // PUBLIC SECTOR ACCESS: Final deployment unlock for Gov-Tech interoperability.
+    // GLOBAL ACCESS LAYER: Standardizing access for Gov-Tech interoperability.
     // This allows seamless synchronization between Citizen, Admin, and Workforce modules.
-    // Deployment Identifier: MADURAI_SYNC_PRO_FINAL_V100_STABLE
+    // Deployment ID: MADURAI_SYNC_PUBLISH_V105_ULTRA_STABLE
+    
+    // Explicit match for the Reports collection used in dashboards
+    match /reports/{reportId} {
+      allow read, write: if true;
+    }
+    
+    // Explicit match for the Users/Staff collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    // Recursive fallback to ensure all sub-paths are accessible
     match /{allPaths=**} {
       allow read, write: if true;
     }
