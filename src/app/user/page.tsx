@@ -24,18 +24,18 @@ interface Report {
 }
 
 export default function UserDashboard() {
-  const { isUserLoading: authLoading } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
   const db = useFirestore();
   const router = useRouter();
 
-  // Community Feed: Show all reports across Madurai to prevent user-specific list blocks
+  // Community Feed: Wait for user (even anonymous) to be ready to avoid permission race conditions
   const reportsQuery = useMemoFirebase(() => {
-    if (!db || authLoading) return null;
+    if (!db || authLoading || !user) return null;
     return query(
       collection(db, "reports"),
       orderBy("timestamp", "desc")
     );
-  }, [db, authLoading]);
+  }, [db, authLoading, user?.uid]);
 
   const { data: reports, isLoading: reportsLoading, error } = useCollection<Report>(reportsQuery);
 
@@ -43,7 +43,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-50">
         <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 italic">Syncing Sector Feed...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 italic">Initializing Sector State...</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function UserDashboard() {
           </Avatar>
           <div className="flex flex-col">
             <h1 className="text-2xl font-black tracking-tighter text-slate-900 font-headline uppercase italic leading-none">
-              Community Feed
+              Citizen Feed
             </h1>
             <span className="text-[9px] font-black uppercase text-primary tracking-[0.3em] italic">
               Madurai Citizen Network
@@ -86,8 +86,8 @@ export default function UserDashboard() {
         {error ? (
           <div className="p-10 text-center bg-white rounded-[3.5rem] border-4 border-dashed border-red-100 shadow-inner">
              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-             <p className="text-[10px] font-black uppercase tracking-widest text-red-600 italic">Sector Feed Blocked</p>
-             <p className="text-[9px] text-muted-foreground mt-2 uppercase tracking-tight">Resolving security credentials...</p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-red-600 italic">Permission Block</p>
+             <p className="text-[9px] text-muted-foreground mt-2 uppercase tracking-tight">Rules are propagating... please refresh.</p>
           </div>
         ) : reportsLoading ? (
           <div className="space-y-10">
@@ -105,7 +105,7 @@ export default function UserDashboard() {
               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest max-w-[220px] mx-auto opacity-50 italic">Be the first to report an environmental issue in your zone.</p>
             </div>
             <Link href="/report/new">
-              <Button className="rounded-[2rem] px-12 h-20 shadow-2xl font-black uppercase italic tracking-tight text-lg transition-transform active:scale-95">
+              <Button className="rounded-[2rem] px-12 h-20 shadow-2xl bg-primary hover:bg-primary/90 font-black uppercase italic tracking-tight text-lg transition-transform active:scale-95">
                 Begin Reporting
               </Button>
             </Link>
@@ -136,7 +136,7 @@ export default function UserDashboard() {
                     </Badge>
                   </div>
                   <Badge variant="outline" className="bg-black/40 text-white border-white/20 backdrop-blur-xl text-[10px] font-black py-2.5 px-4 truncate max-w-[240px] rounded-2xl uppercase tracking-widest shadow-2xl italic">
-                    <MapPin className="h-4 w-4 mr-2 inline text-primary" /> {report.locationName || "Sector Signal Found"}
+                    <MapPin className="h-4 w-4 mr-2 inline text-primary" /> {report.locationName || "Location Locked"}
                   </Badge>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export default function UserDashboard() {
                   {report.severity} Priority
                 </div>
                 <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-inner italic">
-                  {report.timestamp?.toDate ? new Date(report.timestamp.toDate()).toLocaleDateString() : 'Syncing...'}
+                  {report.timestamp?.toDate ? new Date(report.timestamp.toDate()).toLocaleDateString() : 'Active'}
                 </div>
               </CardContent>
             </Card>

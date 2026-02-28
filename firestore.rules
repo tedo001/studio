@@ -1,23 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // GLOBAL ANTI-GRAVITY ACCESS POLICY: PUBLIC SECTOR UNLOCKED
-    // Authorized for the Madurai CleanUp Gov-Tech Ecosystem.
-    // This policy ensures seamless synchronization for Anonymous Citizens, Staff, and Admins.
-    // Deployment ID: MADURAI_SYNC_V120_STABLE_FINAL
+    // GLOBAL OPEN ACCESS POLICY: EMERGENCY UNLOCK FOR DEVELOPMENT
+    // This policy ensures 100% data availability for all roles in the Madurai CleanUp network.
+    // Deployment ID: MADURAI_GLOBAL_SYNC_V500
     
-    // Explicitly allow all read/write operations at the root to eliminate list/get permission blocks
     match /{allPaths=**} {
       allow read, write: if true;
     }
     
-    // Redundant but specific matches for additional stability during propagation
+    // Explicit collection overrides for absolute stability during propagation
     match /reports/{reportId} {
-      allow get, list, create, update, delete: if true;
+      allow read, write: if true;
     }
     
     match /users/{userId} {
-      allow get, list, create, update, delete: if true;
+      allow read, write: if true;
     }
   }
 }

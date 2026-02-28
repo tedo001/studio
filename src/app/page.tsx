@@ -61,13 +61,12 @@ export default function LandingPage() {
     setIsLoggingIn(true);
     
     try {
-      // The FirebaseProvider already handles signInAnonymously on mount.
-      // We ensure the session is ready before redirecting to the portal.
+      // Direct access with background anonymous auth check
       if (!user) {
         await signInAnonymously(auth);
       }
       
-      toast({ title: "Sector Access Granted", description: "Entering Community Monitoring Zone." });
+      toast({ title: "Access Granted", description: "Entering Community Monitoring Zone." });
       router.push("/user");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Access Failed", description: "Unable to establish secure citizen session." });
@@ -77,7 +76,7 @@ export default function LandingPage() {
 
   const handleWorkerLogin = async () => {
     if (!workerIdInput || !workerPassInput || !db) {
-      toast({ variant: "destructive", title: "INPUT REQUIRED", description: "Staff ID and Secure PIN are mandatory for duty login." });
+      toast({ variant: "destructive", title: "INPUT REQUIRED", description: "Staff ID and PIN are mandatory." });
       return;
     }
     
@@ -191,7 +190,7 @@ export default function LandingPage() {
                       <Globe className="h-14 w-14 text-primary" />
                    </div>
                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Citizen Portal</h2>
-                   <p className="text-[10px] text-slate-400 font-black mt-3 uppercase tracking-[0.2em] italic opacity-80">Community Monitoring Mode</p>
+                   <p className="text-[10px] text-slate-400 font-black mt-3 uppercase tracking-[0.2em] italic opacity-80">Community Access Mode</p>
                  </div>
                  <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-2xl bg-primary hover:bg-primary/90 italic flex items-center justify-center gap-5 transition-all active:scale-95" onClick={startAsGuestCitizen} disabled={isLoggingIn}>
                    {isLoggingIn ? <Loader2 className="animate-spin h-10 w-10" /> : <>Enter Portal <ArrowRight className="h-8 w-8" /></>}
