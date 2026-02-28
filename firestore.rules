@@ -1,12 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // PRODUCTION SHIELD: 2024-05-22-GLOBAL-ACCESS-FIX
-    // This permissive rule ensures that all authenticated modules (Citizen, Admin, Worker)
-    // can access the central databases. The system relies on 'request.auth != null'.
-    
-    match /{document=**} {
+    // DEVELOPMENT MODE: Global access for all authenticated users.
+    // This ensures Citizen, Admin, and Worker modules can interoperate without permission errors.
+    match /{allPaths=**} {
       allow read, write: if request.auth != null;
     }
   }

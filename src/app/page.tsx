@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useAuth } from "@/firebase";
 import { doc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 type Role = 'admin' | 'user' | 'worker' | null;
 
 export default function LandingPage() {
-  const { user, loading: authLoading } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
@@ -29,14 +29,14 @@ export default function LandingPage() {
   const [workerPassInput, setWorkerPassInput] = useState("");
   
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [forceShowUI, setForceShowUI] = useState(false);
 
+  // Redirect if user is already a citizen with a profile
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setForceShowUI(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (user && !user.isAnonymous && !isLoggingIn) {
+      // If we're already logged in with a real account, we might want to auto-redirect
+      // but for this multi-role app, we let the user choose their dashboard.
+    }
+  }, [user, isLoggingIn]);
 
   const handleAdminLogin = async () => {
     const cleanEmail = email.toLowerCase().trim();
@@ -59,6 +59,7 @@ export default function LandingPage() {
         toast({ title: "Command Authorized", description: "Entering Google Anti-Gravity Operations Center." });
         router.push("/admin");
       } catch (e) {
+        console.error("Admin Login Error:", e);
         router.push("/admin");
       }
     } else {
@@ -79,6 +80,8 @@ export default function LandingPage() {
     
     setIsLoggingIn(true);
     const provider = new GoogleAuthProvider();
+    // Optimization: Ask for specific account choice to make it feel more "official"
+    provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
       const result = await signInWithPopup(auth, provider);
@@ -95,10 +98,11 @@ export default function LandingPage() {
       toast({ title: "Identity Verified", description: `Welcome, ${currentUser.displayName}.` });
       router.push("/user");
     } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
       toast({
         variant: "destructive",
         title: "Sign-In Failed",
-        description: "Failed to authenticate with Google.",
+        description: error.message || "Failed to authenticate with Google. Ensure popups are enabled.",
       });
       setIsLoggingIn(false);
     }
@@ -133,12 +137,13 @@ export default function LandingPage() {
         setIsLoggingIn(false);
       }
     } catch (error) {
+      console.error("Worker Login Error:", error);
       toast({ variant: "destructive", title: "Sync Error", description: "Database is unreachable. Please retry." });
       setIsLoggingIn(false);
     }
   };
 
-  if (authLoading && !forceShowUI) {
+  if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-50">
         <div className="animate-anti-gravity bg-primary/10 p-10 rounded-[4rem]">
