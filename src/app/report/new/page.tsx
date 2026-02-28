@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -36,14 +37,36 @@ export default function NewReportPage() {
   const [submitted, setSubmitted] = useState(false);
   
   const [location, setLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [locationName, setLocationName] = useState("");
   const [locLoading, setLocLoading] = useState(false);
+
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+      if (response.ok) {
+        const data = await response.json();
+        // Extract a shorter, more readable address if possible
+        const address = data.address;
+        const shortName = address.road || address.suburb || address.neighbourhood || address.city || data.display_name.split(',')[0];
+        setLocationName(shortName + (address.city ? `, ${address.city}` : ""));
+      } else {
+        setLocationName(`Coordinates: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      }
+    } catch (error) {
+      console.error("Geocoding failed", error);
+      setLocationName(`Coordinates: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+    }
+  };
 
   const getGPS = () => {
     setLocLoading(true);
     if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          setLocation({ latitude: lat, longitude: lon });
+          reverseGeocode(lat, lon);
           setLocLoading(false);
         },
         (err) => {
@@ -118,7 +141,7 @@ export default function NewReportPage() {
     }
 
     if (!db || !storage || !user) {
-       // Demo fallback for previewing flow without connected project
+       // Demo fallback simulation
        setUploading(true);
        setTimeout(() => {
          setSubmitted(true);
@@ -143,7 +166,8 @@ export default function NewReportPage() {
         status: "Pending",
         timestamp: serverTimestamp(),
         userId: user.uid,
-        location: location, // Consistently storing as {latitude, longitude}
+        location: location,
+        locationName: locationName || "Madurai Area",
       };
 
       const reportsCollection = collection(db, "reports");
@@ -186,7 +210,8 @@ export default function NewReportPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-primary font-headline">Report Submitted!</h2>
-          <p className="text-muted-foreground">Coordinates: {location?.latitude.toFixed(4)}, {location?.longitude.toFixed(4)}</p>
+          <p className="text-sm font-bold text-slate-600">{locationName}</p>
+          <p className="text-[10px] text-muted-foreground">GPS: {location?.latitude.toFixed(4)}, {location?.longitude.toFixed(4)}</p>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Returning to dashboard...
@@ -264,6 +289,12 @@ export default function NewReportPage() {
                 <CardContent className="p-6 space-y-5">
                   <div className="space-y-3">
                     <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Incident Location</Label>
+                    <div className="bg-white p-3 rounded-2xl border border-primary/10 mb-2">
+                       <p className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-primary" />
+                          {locationName || (locLoading ? "Locating..." : "Madurai Area")}
+                       </p>
+                    </div>
                     {location ? (
                       <MapPreview latitude={location.latitude} longitude={location.longitude} className="h-40" />
                     ) : (

@@ -39,6 +39,10 @@
             "longitude": { "type": "number" }
           }
         },
+        "locationName": {
+          "type": "string",
+          "description": "The human-readable address or area name retrieved via reverse geocoding."
+        },
         "assignedTo": {
           "type": "string",
           "description": "UID of the worker assigned to this report."

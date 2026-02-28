@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -6,7 +7,7 @@ import { collection, query, where, updateDoc, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -76,14 +77,18 @@ export default function WorkerDashboard() {
             </div>
           ) : (
             jobs.map((job: any) => (
-              <Card key={job.id} className="overflow-hidden border-none shadow-md rounded-2xl bg-white">
+              <Card key={job.id} className="overflow-hidden border-none shadow-md rounded-2xl bg-white mb-6">
                 <CardHeader className="p-4 bg-white border-b">
                   <div className="flex justify-between items-start">
                     <div>
-                      <Badge variant={job.severity === 'High' ? 'destructive' : 'secondary'} className="text-[10px] uppercase font-bold">
+                      <Badge variant={job.severity === 'High' ? 'destructive' : 'secondary'} className="text-[10px] uppercase font-bold mb-2">
                         {job.severity} Urgency
                       </Badge>
-                      <CardTitle className="text-md mt-2 font-bold">{job.aiCategory}</CardTitle>
+                      <CardTitle className="text-md font-bold">{job.aiCategory}</CardTitle>
+                      <p className="text-[10px] text-muted-foreground font-black mt-1 uppercase tracking-widest">
+                        <MapPin className="h-3 w-3 inline mr-1 text-primary" />
+                        {job.locationName || "Madurai Area"}
+                      </p>
                     </div>
                     <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs font-bold" onClick={() => {
                       if(job.location) window.open(`https://www.google.com/maps?q=${job.location.latitude},${job.location.longitude}`);
@@ -97,10 +102,6 @@ export default function WorkerDashboard() {
                 </div>
                 {job.location && (
                   <div className="p-3 bg-slate-50 border-b">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="h-3 w-3 text-primary" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Job Location</span>
-                    </div>
                     <MapPreview latitude={job.location.latitude} longitude={job.location.longitude} className="h-32 rounded-xl" />
                   </div>
                 )}

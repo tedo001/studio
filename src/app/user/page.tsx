@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -18,6 +19,7 @@ interface Report {
   aiCategory: string;
   severity: string;
   status: string;
+  locationName?: string;
   timestamp: any;
   userId: string;
 }
@@ -27,7 +29,7 @@ export default function UserDashboard() {
   const db = useFirestore();
   const router = useRouter();
 
-  // Unified data tracking: Memoized query filtered by the logged-in user's UID
+  // Unified data tracking
   const reportsQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(
@@ -102,7 +104,7 @@ export default function UserDashboard() {
           </div>
         ) : (
           reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden border-none shadow-lg rounded-2xl group active:scale-[0.98] transition-transform">
+            <Card key={report.id} className="overflow-hidden border-none shadow-lg rounded-2xl group active:scale-[0.98] transition-transform mb-4">
               <div className="relative h-56 w-full bg-slate-100">
                 <Image 
                   src={report.imageUrl} 
@@ -111,21 +113,26 @@ export default function UserDashboard() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <Badge className="bg-white/95 text-primary border-none font-bold shadow-md h-7 px-3 text-[10px] uppercase">
-                    {report.aiCategory}
-                  </Badge>
-                  <Badge 
-                    variant={report.status === 'Resolved' ? 'default' : 'secondary'} 
-                    className={`font-bold shadow-md h-7 px-3 text-[10px] uppercase ${report.status === 'Pending' ? 'bg-orange-100 text-orange-700' : report.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : ''}`}
-                  >
-                    {report.status}
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Badge className="bg-white/95 text-primary border-none font-bold shadow-md h-7 px-3 text-[10px] uppercase">
+                      {report.aiCategory}
+                    </Badge>
+                    <Badge 
+                      variant={report.status === 'Resolved' ? 'default' : 'secondary'} 
+                      className={`font-bold shadow-md h-7 px-3 text-[10px] uppercase ${report.status === 'Pending' ? 'bg-orange-100 text-orange-700' : report.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : ''}`}
+                    >
+                      {report.status}
+                    </Badge>
+                  </div>
+                  <Badge variant="outline" className="bg-black/40 text-white border-none backdrop-blur-md text-[9px] font-bold py-1 truncate max-w-[180px]">
+                    <MapPin className="h-2 w-2 mr-1 inline" /> {report.locationName || "Madurai Area"}
                   </Badge>
                 </div>
               </div>
               <CardContent className="p-5 flex items-center justify-between bg-white">
                 <div className="flex items-center text-[11px] text-muted-foreground font-bold uppercase tracking-widest">
-                  <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                  <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-primary" />
                   {report.severity} Priority
                 </div>
                 <div className="text-[11px] text-muted-foreground font-semibold bg-slate-50 px-2 py-1 rounded-md">

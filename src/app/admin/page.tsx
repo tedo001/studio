@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -27,7 +28,7 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Memoize queries to ensure they are stable and don't cause infinite re-renders
+  // Memoize queries
   const reportsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));
@@ -123,6 +124,7 @@ export default function AdminDashboard() {
             {reports?.[0]?.location && (
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Latest Incident Map</Label>
+                <p className="text-xs font-bold px-1 text-slate-600 truncate">{reports[0].locationName || "Recent Activity"}</p>
                 <MapPreview latitude={reports[0].location.latitude} longitude={reports[0].location.longitude} className="h-64" />
               </div>
             )}
@@ -195,23 +197,24 @@ export default function AdminDashboard() {
               </div>
             ) : (
               reports.map((r: any, i: number) => (
-                <Card key={i} className="overflow-hidden border-none shadow-md rounded-2xl bg-white group hover:shadow-xl transition-shadow">
+                <Card key={i} className="overflow-hidden border-none shadow-md rounded-2xl bg-white group hover:shadow-xl transition-shadow mb-4">
                   <CardContent className="p-0 flex flex-col">
                     <div className="flex">
                       <div className="relative w-28 h-28 shrink-0 bg-slate-100">
                         <Image src={r.imageUrl} fill alt="report" className="object-cover" />
                       </div>
-                      <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div className="p-4 flex-1 flex flex-col justify-between overflow-hidden">
                         <div className="flex justify-between items-start">
                           <h4 className="font-bold text-sm text-slate-800 truncate pr-2">{r.aiCategory}</h4>
-                          <Badge variant="secondary" className={`text-[9px] h-5 px-2 font-black ${r.severity === 'High' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600'} uppercase tracking-tighter`}>{r.severity}</Badge>
+                          <Badge variant="secondary" className={`text-[9px] h-5 px-2 font-black shrink-0 ${r.severity === 'High' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600'} uppercase tracking-tighter`}>{r.severity}</Badge>
                         </div>
+                        <p className="text-[10px] text-muted-foreground font-medium truncate mt-1">
+                          <MapPin className="h-3 w-3 inline mr-1" />
+                          {r.locationName || "Madurai Area"}
+                        </p>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
-                          <div className="flex gap-2">
-                            {r.location && <MapPin className="h-4 w-4 text-primary" />}
-                            <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold text-primary hover:no-underline">Manage</Button>
-                          </div>
+                          <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold text-primary hover:no-underline">Manage</Button>
                         </div>
                       </div>
                     </div>
