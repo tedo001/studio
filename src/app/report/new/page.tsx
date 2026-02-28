@@ -40,21 +40,21 @@ export default function NewReportPage() {
   const [locationName, setLocationName] = useState("");
   const [locLoading, setLocLoading] = useState(false);
 
+  // Auto-fetch reverse geocoded address
   const reverseGeocode = async (lat: number, lon: number) => {
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
       if (response.ok) {
         const data = await response.json();
-        // Extract a shorter, more readable address if possible
         const address = data.address;
         const shortName = address.road || address.suburb || address.neighbourhood || address.city || data.display_name.split(',')[0];
         setLocationName(shortName + (address.city ? `, ${address.city}` : ""));
       } else {
-        setLocationName(`Coordinates: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+        setLocationName(`Madurai Spot (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
       }
     } catch (error) {
       console.error("Geocoding failed", error);
-      setLocationName(`Coordinates: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      setLocationName(`Madurai Spot (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
     }
   };
 
@@ -72,8 +72,8 @@ export default function NewReportPage() {
         (err) => {
           console.error(err);
           toast({
-            title: "Location Access Required",
-            description: "Please enable GPS permissions in your browser to file a report.",
+            title: "Location Denied",
+            description: "Please enable GPS to file a report.",
             variant: "destructive"
           });
           setLocLoading(false);
@@ -82,11 +82,7 @@ export default function NewReportPage() {
       );
     } else {
       setLocLoading(false);
-      toast({
-        title: "GPS Not Supported",
-        description: "Your browser does not support geolocation tracking.",
-        variant: "destructive"
-      });
+      toast({ title: "Hardware Error", description: "GPS not supported.", variant: "destructive" });
     }
   };
 
@@ -97,15 +93,6 @@ export default function NewReportPage() {
   const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File Too Large",
-          description: "Please select a smaller image (under 5MB).",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
@@ -123,51 +110,35 @@ export default function NewReportPage() {
       setCategory(result.aiCategory);
     } catch (error) {
       console.error("AI Analysis failed", error);
-      setCategory("General Environmental Issue"); 
+      setCategory("Litter/Trash"); 
     } finally {
       setAiAnalyzing(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (!image) {
-      toast({ title: "Photo Required", description: "Please take a photo of the issue first.", variant: "destructive" });
+    if (!image || !location || !user || !db || !storage) {
+      toast({ title: "Missing Data", description: "Waiting for GPS and Photo...", variant: "destructive" });
       return;
-    }
-
-    if (!location) {
-      toast({ title: "GPS Required", description: "Waiting for location...", variant: "destructive" });
-      return;
-    }
-
-    if (!db || !storage || !user) {
-       // Demo fallback simulation
-       setUploading(true);
-       setTimeout(() => {
-         setSubmitted(true);
-         setUploading(false);
-         setTimeout(() => router.push("/user"), 2000);
-       }, 1500);
-       return;
     }
 
     setUploading(true);
     try {
-      const reportId = Math.random().toString(36).substring(7);
-      const storageRef = ref(storage, `reports/${user.uid}/${reportId}.jpg`);
+      const reportId = `${user.uid}-${Date.now()}`;
+      const storageRef = ref(storage, `reports/${reportId}.jpg`);
       
       await uploadString(storageRef, image, "data_url");
       const downloadUrl = await getDownloadURL(storageRef);
 
       const reportData = {
         imageUrl: downloadUrl,
-        aiCategory: category || "Uncategorized",
+        aiCategory: category || "Unknown Incident",
         severity: severity,
         status: "Pending",
         timestamp: serverTimestamp(),
         userId: user.uid,
         location: location,
-        locationName: locationName || "Madurai Area",
+        locationName: locationName || "Madurai Municipal Limit",
       };
 
       const reportsCollection = collection(db, "reports");
@@ -175,10 +146,7 @@ export default function NewReportPage() {
       addDoc(reportsCollection, reportData)
         .then(() => {
           setSubmitted(true);
-          toast({
-            title: "Report Filed",
-            description: "Your report has been successfully recorded.",
-          });
+          toast({ title: "Case Filed", description: "Successfully synced with Municipal command." });
           setTimeout(() => router.push("/user"), 2000);
         })
         .catch(async (serverError) => {
@@ -193,11 +161,6 @@ export default function NewReportPage() {
 
     } catch (error: any) {
       console.error("Submission error", error);
-      toast({
-        title: "Upload Failed",
-        description: error.message || "Could not upload image.",
-        variant: "destructive",
-      });
       setUploading(false);
     }
   };
@@ -209,12 +172,11 @@ export default function NewReportPage() {
           <CheckCircle className="h-12 w-12 text-primary animate-in zoom-in duration-300" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-primary font-headline">Report Submitted!</h2>
+          <h2 className="text-2xl font-black text-primary font-headline tracking-tight">Report Registered!</h2>
           <p className="text-sm font-bold text-slate-600">{locationName}</p>
-          <p className="text-[10px] text-muted-foreground">GPS: {location?.latitude.toFixed(4)}, {location?.longitude.toFixed(4)}</p>
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Returning to dashboard...
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+          <Loader2 className="h-4 w-4 animate-spin" /> Finalizing database entry...
         </div>
       </div>
     );
@@ -228,34 +190,34 @@ export default function NewReportPage() {
             <ArrowLeft className="h-6 w-6" />
           </Button>
         </Link>
-        <h1 className="text-xl font-bold font-headline">Report New Issue</h1>
+        <h1 className="text-xl font-bold font-headline">New Incident Case</h1>
       </header>
 
       <div className="px-6 flex-1 flex flex-col space-y-6 py-6">
         {!location && !locLoading && (
-          <Alert variant="destructive" className="rounded-2xl border-2">
-            <AlertTitle className="flex items-center gap-2 text-xs font-black uppercase"><MapPin className="h-4 w-4" /> GPS Access Required</AlertTitle>
+          <Alert variant="destructive" className="rounded-3xl border-2">
+            <AlertTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-widest"><MapPin className="h-4 w-4" /> GPS Required</AlertTitle>
             <AlertDescription className="text-xs space-y-2">
-              <p>We need your location to help workers find the issue.</p>
-              <Button size="sm" variant="outline" className="h-8 rounded-xl bg-white" onClick={getGPS}>
-                <RefreshCw className="h-3 w-3 mr-2" /> Retry GPS
+              <p>We cannot file a report without precise coordinates.</p>
+              <Button size="sm" variant="outline" className="h-9 rounded-xl bg-white text-xs font-bold" onClick={getGPS}>
+                <RefreshCw className="h-3.5 w-3.5 mr-2" /> Activate Tracker
               </Button>
             </AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
-          <Label className="text-lg font-bold">1. Capture Visual Evidence</Label>
+          <Label className="text-lg font-bold">1. Capture Evidence</Label>
           <div 
             onClick={() => !image && fileInputRef.current?.click()}
             className={`relative h-64 w-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all duration-300 ${image ? 'border-primary' : 'border-muted-foreground/30 bg-slate-50'}`}
           >
             {image ? (
               <>
-                <Image src={image} alt="Captured evidence" fill className="object-cover" />
+                <Image src={image} alt="Evidence" fill className="object-cover" />
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setImage(null); setCategory(""); }}
-                  className="absolute top-4 right-4 h-10 w-10 bg-black/60 text-white rounded-full flex items-center justify-center z-10 shadow-lg"
+                  onClick={(e) => { e.stopPropagation(); setImage(null); }}
+                  className="absolute top-4 right-4 h-10 w-10 bg-black/60 text-white rounded-full flex items-center justify-center z-10 shadow-lg backdrop-blur-sm"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -265,71 +227,56 @@ export default function NewReportPage() {
                 <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
                   <Camera className="h-8 w-8 text-primary" />
                 </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold">Tap to Open Camera</p>
-                </div>
+                <p className="text-sm font-bold text-slate-500">Tap to Scan Issue</p>
               </div>
             )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              capture="environment" 
-              ref={fileInputRef} 
-              className="hidden" 
-              onChange={handleCapture} 
-            />
+            <input type="file" accept="image/*" capture="environment" ref={fileInputRef} className="hidden" onChange={handleCapture} />
           </div>
         </div>
 
         {image && (
           <div className="space-y-6 animate-in slide-in-from-bottom-6 duration-500">
             <div className="space-y-4">
-              <Label className="text-lg font-bold">2. Verification Details</Label>
+              <Label className="text-lg font-bold">2. Intelligence Audit</Label>
               <Card className="bg-slate-50 border-none shadow-sm rounded-3xl overflow-hidden">
                 <CardContent className="p-6 space-y-5">
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Incident Location</Label>
-                    <div className="bg-white p-3 rounded-2xl border border-primary/10 mb-2">
-                       <p className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-primary" />
-                          {locationName || (locLoading ? "Locating..." : "Madurai Area")}
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Verified Address</Label>
+                    <div className="bg-white p-3 rounded-2xl border border-primary/10 shadow-sm">
+                       <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          {locationName || "Detecting Street..."}
                        </p>
                     </div>
-                    {location ? (
-                      <MapPreview latitude={location.latitude} longitude={location.longitude} className="h-40" />
-                    ) : (
-                      <div className="h-40 rounded-2xl bg-slate-200 animate-pulse flex items-center justify-center text-slate-400">
-                        {locLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <MapPin className="h-8 w-8" />}
-                      </div>
-                    )}
+                    {location && <MapPreview latitude={location.latitude} longitude={location.longitude} className="h-40" />}
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">AI Suggested Category</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">AI Categorization</Label>
                     <div className="flex items-center">
                       {aiAnalyzing ? (
                         <div className="flex items-center space-x-2 text-primary bg-primary/5 px-4 py-2 rounded-xl">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-xs font-bold">Analyzing Evidence...</span>
+                          <span className="text-[10px] font-black uppercase">Deep Scan Active...</span>
                         </div>
                       ) : (
-                        <Badge variant="secondary" className="bg-white text-primary px-4 py-2 border-primary/10 shadow-sm text-xs font-bold rounded-xl">
-                          {category || "Identifying Issue..."}
+                        <Badge variant="secondary" className="bg-white text-primary px-4 py-2 border-primary/10 shadow-sm text-xs font-black rounded-xl uppercase">
+                          {category || "Awaiting Scan..."}
                         </Badge>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Issue Priority</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Emergency Priority</Label>
                     <Select value={severity} onValueChange={setSeverity}>
                       <SelectTrigger className="bg-white h-12 rounded-xl border-none shadow-sm font-bold">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Low">Low - Non-hazardous</SelectItem>
-                        <SelectItem value="Medium">Medium - Regular hazard</SelectItem>
-                        <SelectItem value="High">High - Emergency removal</SelectItem>
+                        <SelectItem value="Low">Low - Cosmetic</SelectItem>
+                        <SelectItem value="Medium">Medium - Regular Hazard</SelectItem>
+                        <SelectItem value="High">High - Emergency Removal</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -338,16 +285,16 @@ export default function NewReportPage() {
             </div>
 
             <Button 
-              className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl" 
+              className="w-full h-16 text-lg font-black rounded-2xl shadow-xl transition-transform active:scale-95" 
               onClick={handleSubmit}
               disabled={uploading || aiAnalyzing || !location}
             >
               {uploading ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Submitting Case...</span>
+                  <span>Transmitting Case...</span>
                 </div>
-              ) : "File Official Report"}
+              ) : "Transmit Official Report"}
             </Button>
           </div>
         )}
