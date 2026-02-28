@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, Globe } from "lucide-react";
+import { ShieldCheck, HardHat, Leaf, ArrowRight, Loader2, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -61,7 +61,8 @@ export default function LandingPage() {
     setIsLoggingIn(true);
     
     try {
-      // Ensure we have an anonymous session established
+      // The FirebaseProvider already handles signInAnonymously on mount.
+      // We ensure the session is ready before redirecting to the portal.
       if (!user) {
         await signInAnonymously(auth);
       }
@@ -81,7 +82,7 @@ export default function LandingPage() {
     }
     
     setIsLoggingIn(true);
-    // Direct routing for demo stability, PIN verification happens on the worker task board
+    // Direct routing for demo stability
     router.push("/worker");
     toast({ title: "Duty Commenced", description: "Loading field task board..." });
   };
@@ -142,7 +143,7 @@ export default function LandingPage() {
              </Button>
              
              {role === 'admin' && (
-               <Card className="rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border-none overflow-hidden">
+               <Card className="rounded-[4rem] shadow-2xl border-none overflow-hidden">
                  <CardHeader className="bg-slate-900 text-white p-10">
                    <CardTitle className="text-3xl font-black uppercase italic text-center tracking-tighter">Command Auth</CardTitle>
                  </CardHeader>
@@ -163,7 +164,7 @@ export default function LandingPage() {
              )}
 
              {role === 'worker' && (
-               <Card className="rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(234,88,12,0.15)] border-none overflow-hidden">
+               <Card className="rounded-[4rem] shadow-2xl border-none overflow-hidden">
                  <CardHeader className="bg-orange-600 text-white p-10">
                    <CardTitle className="text-3xl font-black uppercase italic text-center tracking-tighter">Duty Login</CardTitle>
                  </CardHeader>
@@ -192,7 +193,7 @@ export default function LandingPage() {
                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Citizen Portal</h2>
                    <p className="text-[10px] text-slate-400 font-black mt-3 uppercase tracking-[0.2em] italic opacity-80">Community Monitoring Mode</p>
                  </div>
-                 <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-[0_25px_60px_-15px_rgba(34,197,94,0.4)] bg-primary hover:bg-primary/90 italic flex items-center justify-center gap-5 transition-all active:scale-95" onClick={startAsGuestCitizen} disabled={isLoggingIn}>
+                 <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-2xl bg-primary hover:bg-primary/90 italic flex items-center justify-center gap-5 transition-all active:scale-95" onClick={startAsGuestCitizen} disabled={isLoggingIn}>
                    {isLoggingIn ? <Loader2 className="animate-spin h-10 w-10" /> : <>Enter Portal <ArrowRight className="h-8 w-8" /></>}
                  </Button>
                </div>

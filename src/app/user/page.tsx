@@ -4,7 +4,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw, User, Users } from "lucide-react";
+import { Plus, MapPin, Leaf, AlertCircle, Home, Loader2, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,11 @@ interface Report {
 }
 
 export default function UserDashboard() {
-  const { user, isUserLoading: authLoading } = useUser();
+  const { isUserLoading: authLoading } = useUser();
   const db = useFirestore();
   const router = useRouter();
 
-  // Community Feed: Show all reports across Madurai
-  // We remove the userId filter to allow 'anyone' to see the community impact
+  // Community Feed: Show all reports across Madurai to prevent user-specific list blocks
   const reportsQuery = useMemoFirebase(() => {
     if (!db || authLoading) return null;
     return query(
@@ -38,7 +37,7 @@ export default function UserDashboard() {
     );
   }, [db, authLoading]);
 
-  const { data: reports, isLoading: reportsLoading } = useCollection<Report>(reportsQuery);
+  const { data: reports, isLoading: reportsLoading, error } = useCollection<Report>(reportsQuery);
 
   if (authLoading) {
     return (
@@ -84,7 +83,13 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {reportsLoading ? (
+        {error ? (
+          <div className="p-10 text-center bg-white rounded-[3.5rem] border-4 border-dashed border-red-100 shadow-inner">
+             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+             <p className="text-[10px] font-black uppercase tracking-widest text-red-600 italic">Sector Feed Blocked</p>
+             <p className="text-[9px] text-muted-foreground mt-2 uppercase tracking-tight">Resolving security credentials...</p>
+          </div>
+        ) : reportsLoading ? (
           <div className="space-y-10">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-72 w-full rounded-[3.5rem]" />
@@ -153,7 +158,7 @@ export default function UserDashboard() {
       <div className="fixed bottom-10 left-0 right-0 px-6 max-w-lg mx-auto pointer-events-none">
         <div className="flex justify-center pointer-events-auto">
           <Link href="/report/new">
-            <Button size="lg" className="rounded-[3rem] h-28 w-28 shadow-[0_20px_50px_rgba(34,197,94,0.3)] bg-primary hover:bg-primary/90 border-[10px] border-white group active:scale-90 transition-all duration-500">
+            <Button size="lg" className="rounded-[3rem] h-28 w-28 shadow-2xl bg-primary hover:bg-primary/90 border-[10px] border-white group active:scale-90 transition-all duration-500">
               <Plus className="h-14 w-14 text-white group-hover:rotate-90 transition-transform duration-700" />
             </Button>
           </Link>
