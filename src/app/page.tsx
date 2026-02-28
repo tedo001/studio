@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -62,12 +61,12 @@ export default function LandingPage() {
     setIsLoggingIn(true);
     
     try {
-      // Ensure we have an anonymous session (FirebaseProvider usually handles this, but we make it explicit here)
+      // Ensure we have an anonymous session established
       if (!user) {
         await signInAnonymously(auth);
       }
       
-      toast({ title: "Portal Active", description: "Entering Citizen Monitoring Zone." });
+      toast({ title: "Sector Access Granted", description: "Entering Community Monitoring Zone." });
       router.push("/user");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Access Failed", description: "Unable to establish secure citizen session." });
@@ -82,10 +81,7 @@ export default function LandingPage() {
     }
     
     setIsLoggingIn(true);
-    
-    // Workforce login logic (as previously implemented but optimized for clarity)
-    // Note: The actual worker documents are queried in-app to verify the PIN
-    // for maximum demo stability.
+    // Direct routing for demo stability, PIN verification happens on the worker task board
     router.push("/worker");
     toast({ title: "Duty Commenced", description: "Loading field task board..." });
   };
@@ -94,108 +90,110 @@ export default function LandingPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Loading Anti-Gravity Ops...</p>
+        <p className="mt-4 text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 italic">Initializing Sector State...</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-background p-6">
-      <header className="pt-16 pb-12 flex flex-col items-center text-center space-y-4">
-        <div className="h-24 w-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center shadow-inner animate-anti-gravity">
-          <Leaf className="h-12 w-12 text-primary" />
+      <header className="pt-20 pb-16 flex flex-col items-center text-center space-y-6">
+        <div className="h-28 w-28 bg-primary/10 rounded-[3rem] flex items-center justify-center shadow-inner animate-anti-gravity">
+          <Leaf className="h-14 w-14 text-primary" />
         </div>
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase italic leading-none">
+          <h1 className="text-5xl font-black tracking-tighter text-primary font-headline uppercase italic leading-none">
             Madurai <span className="text-slate-800">CleanUp</span>
           </h1>
-          <p className="text-muted-foreground mt-2 text-[9px] font-black uppercase tracking-[0.4em] italic opacity-60">
+          <p className="text-muted-foreground mt-3 text-[10px] font-black uppercase tracking-[0.5em] italic opacity-60">
             Gov Infrastructure Network
           </p>
         </div>
       </header>
 
-      <div className="grid gap-6 flex-1 max-w-sm mx-auto w-full">
+      <div className="grid gap-8 flex-1 max-w-sm mx-auto w-full">
         {!role ? (
-          <div className="space-y-4 animate-in fade-in duration-700">
+          <div className="space-y-6 animate-in fade-in duration-1000">
             {[
-              { id: 'user', icon: User, title: 'Citizen', desc: 'Report & Track', color: 'blue' },
-              { id: 'worker', icon: HardHat, title: 'Workforce', desc: 'Duty & Logs', color: 'orange' },
-              { id: 'admin', icon: ShieldCheck, title: 'Ops Center', desc: 'Admin Command', color: 'slate' }
+              { id: 'user', icon: Globe, title: 'Citizen Portal', desc: 'Anyone can Report', color: 'primary' },
+              { id: 'worker', icon: HardHat, title: 'Field Staff', desc: 'Duty & Log Tasks', color: 'orange' },
+              { id: 'admin', icon: ShieldCheck, title: 'Ops Center', desc: 'Admin Oversight', color: 'slate' }
             ].map((r) => (
-              <Card key={r.id} className="cursor-pointer hover:scale-[1.02] transition-transform border-2 rounded-[2.5rem] shadow-xl bg-white overflow-hidden active:scale-95" onClick={() => setRole(r.id as Role)}>
-                <CardContent className="p-8 flex items-center justify-between">
-                  <div className="flex items-center space-x-5">
-                    <div className={`h-16 w-16 bg-${r.color}-100 text-${r.color}-600 rounded-3xl flex items-center justify-center`}>
-                      <r.icon className="h-8 w-8" />
+              <Card key={r.id} className="cursor-pointer hover:scale-[1.03] transition-all border-none rounded-[3.5rem] shadow-2xl bg-white overflow-hidden active:scale-95 group" onClick={() => setRole(r.id as Role)}>
+                <CardContent className="p-10 flex items-center justify-between">
+                  <div className="flex items-center space-x-6">
+                    <div className={`h-20 w-20 bg-slate-50 text-primary rounded-[2rem] flex items-center justify-center shadow-inner group-hover:bg-primary/10 transition-colors`}>
+                      <r.icon className="h-10 w-10" />
                     </div>
                     <div className="text-left">
-                      <h3 className="font-black text-xl uppercase italic">{r.title}</h3>
-                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">{r.desc}</p>
+                      <h3 className="font-black text-2xl uppercase italic tracking-tighter">{r.title}</h3>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60 italic">{r.desc}</p>
                     </div>
                   </div>
-                  <ArrowRight className="h-6 w-6 text-slate-300" />
+                  <ArrowRight className="h-8 w-8 text-slate-200 group-hover:text-primary transition-colors" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <div className="animate-in slide-in-from-right-8 duration-500">
-             <Button variant="ghost" onClick={() => setRole(null)} className="mb-6 text-[10px] font-black uppercase text-slate-400">
-               <ArrowRight className="rotate-180 mr-2 h-4 w-4" /> Back to Selection
+          <div className="animate-in slide-in-from-right-12 duration-500">
+             <Button variant="ghost" onClick={() => setRole(null)} className="mb-8 text-[10px] font-black uppercase text-slate-400 hover:text-primary transition-colors italic">
+               <ArrowRight className="rotate-180 mr-3 h-5 w-5" /> Back to Selection
              </Button>
              
              {role === 'admin' && (
-               <Card className="rounded-[3rem] shadow-2xl border-none overflow-hidden">
-                 <CardHeader className="bg-slate-900 text-white p-8">
-                   <CardTitle className="text-2xl font-black uppercase italic text-center">Command Auth</CardTitle>
+               <Card className="rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border-none overflow-hidden">
+                 <CardHeader className="bg-slate-900 text-white p-10">
+                   <CardTitle className="text-3xl font-black uppercase italic text-center tracking-tighter">Command Auth</CardTitle>
                  </CardHeader>
-                 <CardContent className="p-8 space-y-5">
-                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">Official Email</Label>
-                     <Input placeholder="admin@gov.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
+                 <CardContent className="p-10 space-y-6">
+                   <div className="space-y-3">
+                     <Label className="text-[10px] font-black uppercase text-slate-400 italic tracking-widest">Official Email</Label>
+                     <Input placeholder="admin@gov.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-16 rounded-[1.5rem] bg-slate-50 border-none shadow-inner font-bold" />
                    </div>
-                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">Master Key</Label>
-                     <Input type="password" placeholder="••••" value={password} onChange={(e) => setPassword(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
+                   <div className="space-y-3">
+                     <Label className="text-[10px] font-black uppercase text-slate-400 italic tracking-widest">Master Key</Label>
+                     <Input type="password" placeholder="••••" value={password} onChange={(e) => setPassword(e.target.value)} className="h-16 rounded-[1.5rem] bg-slate-50 border-none shadow-inner font-bold" />
                    </div>
-                   <Button className="w-full h-16 font-black rounded-2xl bg-slate-900 hover:bg-slate-800 text-lg uppercase italic" onClick={handleAdminLogin} disabled={isLoggingIn}>
-                     {isLoggingIn ? <Loader2 className="animate-spin" /> : "Authorize Command"}
+                   <Button className="w-full h-20 font-black rounded-[2rem] bg-slate-900 hover:bg-slate-800 text-xl uppercase italic shadow-2xl transition-transform active:scale-95" onClick={handleAdminLogin} disabled={isLoggingIn}>
+                     {isLoggingIn ? <Loader2 className="animate-spin h-8 w-8" /> : "Authorize Command"}
                    </Button>
                  </CardContent>
                </Card>
              )}
 
              {role === 'worker' && (
-               <Card className="rounded-[3rem] shadow-2xl border-none overflow-hidden">
-                 <CardHeader className="bg-orange-600 text-white p-8">
-                   <CardTitle className="text-2xl font-black uppercase italic text-center">Duty Login</CardTitle>
+               <Card className="rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(234,88,12,0.15)] border-none overflow-hidden">
+                 <CardHeader className="bg-orange-600 text-white p-10">
+                   <CardTitle className="text-3xl font-black uppercase italic text-center tracking-tighter">Duty Login</CardTitle>
                  </CardHeader>
-                 <CardContent className="p-8 space-y-5">
-                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">Staff ID</Label>
-                     <Input placeholder="w123" value={workerIdInput} onChange={e => setWorkerIdInput(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
+                 <CardContent className="p-10 space-y-6">
+                   <div className="space-y-3">
+                     <Label className="text-[10px] font-black uppercase text-slate-400 italic tracking-widest">Staff ID</Label>
+                     <Input placeholder="w123" value={workerIdInput} onChange={e => setWorkerIdInput(e.target.value)} className="h-16 rounded-[1.5rem] bg-slate-50 border-none shadow-inner font-bold" />
                    </div>
-                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">PIN</Label>
-                     <Input type="password" placeholder="•••" value={workerPassInput} onChange={e => setWorkerPassInput(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
+                   <div className="space-y-3">
+                     <Label className="text-[10px] font-black uppercase text-slate-400 italic tracking-widest">Duty PIN</Label>
+                     <Input type="password" placeholder="•••" value={workerPassInput} onChange={e => setWorkerPassInput(e.target.value)} className="h-16 rounded-[1.5rem] bg-slate-50 border-none shadow-inner font-bold" />
                    </div>
-                   <Button className="w-full h-16 font-black bg-orange-600 hover:bg-orange-700 rounded-2xl text-lg uppercase italic" onClick={handleWorkerLogin} disabled={isLoggingIn}>
-                     {isLoggingIn ? <Loader2 className="animate-spin" /> : "Login to Duty"}
+                   <Button className="w-full h-20 font-black bg-orange-600 hover:bg-orange-700 rounded-[2rem] text-xl uppercase italic shadow-2xl transition-transform active:scale-95" onClick={handleWorkerLogin} disabled={isLoggingIn}>
+                     {isLoggingIn ? <Loader2 className="animate-spin h-8 w-8" /> : "Login to Duty"}
                    </Button>
                  </CardContent>
                </Card>
              )}
 
              {role === 'user' && (
-               <div className="space-y-8">
-                 <div className="p-12 bg-blue-50/50 rounded-[4rem] text-center border-2 border-dashed border-blue-100">
-                   <User className="h-20 w-20 text-blue-600 mx-auto animate-anti-gravity" />
-                   <h2 className="text-2xl font-black mt-6 uppercase italic">Citizen Portal</h2>
-                   <p className="text-[10px] text-blue-400 font-black mt-2 uppercase tracking-widest italic">Instant Access Mode</p>
+               <div className="space-y-10">
+                 <div className="p-16 bg-white rounded-[4.5rem] text-center shadow-2xl border-4 border-slate-50 border-dashed">
+                   <div className="h-28 w-28 bg-primary/5 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner mb-8 animate-anti-gravity">
+                      <Globe className="h-14 w-14 text-primary" />
+                   </div>
+                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Citizen Portal</h2>
+                   <p className="text-[10px] text-slate-400 font-black mt-3 uppercase tracking-[0.2em] italic opacity-80">Community Monitoring Mode</p>
                  </div>
-                 <Button className="w-full h-20 text-lg font-black rounded-[2.5rem] shadow-2xl bg-blue-600 hover:bg-blue-700 italic flex items-center justify-center gap-4" onClick={startAsGuestCitizen} disabled={isLoggingIn}>
-                   {isLoggingIn ? <Loader2 className="animate-spin" /> : <><Globe className="h-6 w-6" /> Enter Citizen Portal</>}
+                 <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-[0_25px_60px_-15px_rgba(34,197,94,0.4)] bg-primary hover:bg-primary/90 italic flex items-center justify-center gap-5 transition-all active:scale-95" onClick={startAsGuestCitizen} disabled={isLoggingIn}>
+                   {isLoggingIn ? <Loader2 className="animate-spin h-10 w-10" /> : <>Enter Portal <ArrowRight className="h-8 w-8" /></>}
                  </Button>
                </div>
              )}
@@ -203,9 +201,9 @@ export default function LandingPage() {
         )}
       </div>
 
-      <footer className="mt-auto py-10 text-center space-y-1">
-        <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.4em]">© 2024 Madurai Corp</p>
-        <p className="text-[9px] text-primary font-black uppercase italic">Powered by Anti-Gravity Engine</p>
+      <footer className="mt-auto py-12 text-center space-y-2 opacity-40">
+        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.5em]">© 2024 Madurai Corp</p>
+        <p className="text-[9px] text-primary font-black uppercase italic tracking-widest">Anti-Gravity Infrastructure Network</p>
       </footer>
     </div>
   );

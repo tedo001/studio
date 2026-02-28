@@ -1,17 +1,16 @@
-
 "use client";
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, where } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw, User } from "lucide-react";
+import { Plus, MapPin, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw, User, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Report {
   id: string;
@@ -29,108 +28,101 @@ export default function UserDashboard() {
   const db = useFirestore();
   const router = useRouter();
 
-  // Unified data tracking for authenticated user
+  // Community Feed: Show all reports across Madurai
+  // We remove the userId filter to allow 'anyone' to see the community impact
   const reportsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || authLoading) return null;
     return query(
       collection(db, "reports"),
-      where("userId", "==", user.uid),
       orderBy("timestamp", "desc")
     );
-  }, [db, user?.uid]);
+  }, [db, authLoading]);
 
   const { data: reports, isLoading: reportsLoading } = useCollection<Report>(reportsQuery);
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-        <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Authenticating Citizen...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-50">
+        <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 italic">Syncing Sector Feed...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background relative pb-24">
+    <div className="flex flex-col min-h-screen bg-slate-50 relative pb-24">
       {/* Header */}
-      <header className="p-6 pt-10 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-20 border-b">
+      <header className="p-6 pt-10 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 border-b shadow-sm">
         <div className="flex items-center space-x-3">
-          <Avatar className="h-12 w-12 border-2 border-primary shadow-lg">
-            {user?.photoURL ? (
-              <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary font-black">
-                {user?.displayName?.[0] || <User className="h-6 w-6" />}
-              </AvatarFallback>
-            )}
+          <Avatar className="h-14 w-14 border-[3px] border-primary shadow-2xl rounded-2xl overflow-hidden">
+            <AvatarFallback className="bg-primary/10 text-primary font-black">
+              <Users className="h-7 w-7" />
+            </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tight text-slate-900 font-headline uppercase italic leading-none">
-              {user?.displayName?.split(' ')[0] || "Guest"}&apos;s Feed
+            <h1 className="text-2xl font-black tracking-tighter text-slate-900 font-headline uppercase italic leading-none">
+              Community Feed
             </h1>
-            <span className="text-[9px] font-black uppercase text-primary tracking-widest">
-              {user?.isAnonymous ? "Guest Citizen" : "Verified Citizen"}
+            <span className="text-[9px] font-black uppercase text-primary tracking-[0.3em] italic">
+              Madurai Citizen Network
             </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="rounded-2xl h-10 w-10 hover:bg-slate-100" onClick={() => router.push("/")}>
-            <Home className="h-5 w-5 text-slate-600" />
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-2xl h-10 w-10 hover:bg-red-50 hover:text-red-600" onClick={() => router.push("/")}>
-            <LogOut className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 hover:bg-slate-100" onClick={() => router.push("/")}>
+            <Home className="h-6 w-6 text-slate-600" />
           </Button>
         </div>
       </header>
 
       {/* Reports Feed */}
-      <div className="flex-1 px-6 space-y-6 pt-6 overflow-y-auto">
+      <div className="flex-1 px-6 space-y-8 pt-8 overflow-y-auto">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] italic">Active Monitoring</h2>
-          <div className="flex items-center gap-2 text-[9px] font-black text-primary bg-primary/5 px-3 py-1 rounded-full animate-glow">
+          <div className="flex items-center gap-2 text-[9px] font-black text-green-600 bg-green-50 px-4 py-1.5 rounded-full shadow-sm animate-pulse border border-green-100 italic">
             <RefreshCw className="h-3 w-3 animate-spin" /> LIVE UPDATES
           </div>
         </div>
 
         {reportsLoading ? (
-          <div className="space-y-6">
+          <div className="space-y-10">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-64 w-full rounded-[2.5rem]" />
+              <Skeleton key={i} className="h-72 w-full rounded-[3.5rem]" />
             ))}
           </div>
         ) : !reports || reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-8 bg-slate-50/50 rounded-[4rem] border-4 border-dashed border-slate-100">
-            <div className="h-24 w-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-inner animate-anti-gravity">
-              <Leaf className="h-12 w-12 text-slate-200" />
+          <div className="flex flex-col items-center justify-center py-24 text-center space-y-10 bg-white rounded-[4rem] border-8 border-dashed border-slate-100 shadow-inner">
+            <div className="h-28 w-28 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner animate-anti-gravity">
+              <Leaf className="h-14 w-14 text-slate-200" />
             </div>
-            <div className="space-y-2">
-              <p className="text-xl font-black text-slate-400 uppercase italic">Sector Clear</p>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest max-w-[200px] mx-auto opacity-60">Help keep Madurai clean. Submit your first environmental report today.</p>
+            <div className="space-y-3">
+              <p className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Sector Clear</p>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest max-w-[220px] mx-auto opacity-50 italic">Be the first to report an environmental issue in your zone.</p>
             </div>
             <Link href="/report/new">
-              <Button className="rounded-2xl px-10 h-16 shadow-2xl font-black uppercase italic tracking-tight">
-                Get Started
+              <Button className="rounded-[2rem] px-12 h-20 shadow-2xl font-black uppercase italic tracking-tight text-lg transition-transform active:scale-95">
+                Begin Reporting
               </Button>
             </Link>
           </div>
         ) : (
           reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden border-none shadow-2xl rounded-[3rem] group active:scale-[0.98] transition-all duration-300 mb-8 bg-white">
-              <div className="relative h-64 w-full bg-slate-100">
+            <Card key={report.id} className="overflow-hidden border-none shadow-2xl rounded-[3.5rem] group active:scale-[0.98] transition-all duration-500 mb-10 bg-white hover:translate-y-[-4px]">
+              <div className="relative h-72 w-full bg-slate-100 overflow-hidden">
                 <Image 
                   src={report.imageUrl} 
                   alt={report.aiCategory} 
                   fill 
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="object-cover group-hover:scale-110 transition-transform duration-1000"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80" />
                 <div className="absolute top-6 left-6 flex flex-col gap-3">
                   <div className="flex gap-2">
-                    <Badge className="bg-white/95 text-primary border-none font-black shadow-2xl h-8 px-4 text-[10px] uppercase italic rounded-xl">
+                    <Badge className="bg-white text-primary border-none font-black shadow-2xl h-8 px-5 text-[10px] uppercase italic rounded-xl">
                       {report.aiCategory}
                     </Badge>
                     <Badge 
-                      className={`font-black shadow-2xl h-8 px-4 text-[10px] uppercase italic rounded-xl border-none ${
+                      className={`font-black shadow-2xl h-8 px-5 text-[10px] uppercase italic rounded-xl border-none ${
                         report.status === 'Resolved' ? 'bg-green-500 text-white' : 
                         report.status === 'Pending' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'
                       }`}
@@ -138,17 +130,17 @@ export default function UserDashboard() {
                       {report.status}
                     </Badge>
                   </div>
-                  <Badge variant="outline" className="bg-black/30 text-white border-white/20 backdrop-blur-xl text-[9px] font-black py-2 px-3 truncate max-w-[220px] rounded-lg uppercase tracking-widest">
-                    <MapPin className="h-3 w-3 mr-2 inline text-primary" /> {report.locationName || "Detecting Street..."}
+                  <Badge variant="outline" className="bg-black/40 text-white border-white/20 backdrop-blur-xl text-[10px] font-black py-2.5 px-4 truncate max-w-[240px] rounded-2xl uppercase tracking-widest shadow-2xl italic">
+                    <MapPin className="h-4 w-4 mr-2 inline text-primary" /> {report.locationName || "Sector Signal Found"}
                   </Badge>
                 </div>
               </div>
-              <CardContent className="p-6 flex items-center justify-between bg-white border-t border-slate-50">
-                <div className="flex items-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                  <AlertCircle className={`h-4 w-4 mr-2 ${report.severity === 'High' ? 'text-red-500' : 'text-primary'}`} />
+              <CardContent className="p-8 flex items-center justify-between bg-white border-t border-slate-50">
+                <div className="flex items-center text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                  <AlertCircle className={`h-5 w-5 mr-3 ${report.severity === 'High' ? 'text-red-500' : 'text-primary'}`} />
                   {report.severity} Priority
                 </div>
-                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-inner italic">
+                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-inner italic">
                   {report.timestamp?.toDate ? new Date(report.timestamp.toDate()).toLocaleDateString() : 'Syncing...'}
                 </div>
               </CardContent>
@@ -158,11 +150,11 @@ export default function UserDashboard() {
       </div>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-8 left-0 right-0 px-6 max-w-lg mx-auto pointer-events-none">
+      <div className="fixed bottom-10 left-0 right-0 px-6 max-w-lg mx-auto pointer-events-none">
         <div className="flex justify-center pointer-events-auto">
           <Link href="/report/new">
-            <Button size="lg" className="rounded-[2.5rem] h-24 w-24 shadow-2xl bg-primary hover:bg-primary/90 border-[8px] border-white group active:scale-90 transition-all duration-300">
-              <Plus className="h-12 w-12 text-white group-hover:rotate-90 transition-transform duration-500" />
+            <Button size="lg" className="rounded-[3rem] h-28 w-28 shadow-[0_20px_50px_rgba(34,197,94,0.3)] bg-primary hover:bg-primary/90 border-[10px] border-white group active:scale-90 transition-all duration-500">
+              <Plus className="h-14 w-14 text-white group-hover:rotate-90 transition-transform duration-700" />
             </Button>
           </Link>
         </div>
