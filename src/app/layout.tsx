@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
+import { DownloadAppButton } from '@/components/DownloadAppButton';
 
 export const metadata: Metadata = {
   title: 'Madurai CleanUp',
@@ -20,10 +21,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased min-h-screen flex flex-col">
+      <body className="font-body antialiased min-h-screen flex flex-col bg-slate-100">
         <FirebaseClientProvider>
-          <main className="flex-1 max-w-lg mx-auto w-full bg-white shadow-xl min-h-screen">
+          <main className="flex-1 max-w-lg mx-auto w-full bg-white shadow-xl min-h-screen relative overflow-hidden">
             {children}
+            <DownloadAppButton />
           </main>
           <Toaster />
         </FirebaseClientProvider>
