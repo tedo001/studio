@@ -56,6 +56,8 @@
       "type": "object",
       "properties": {
         "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "user", "worker"] },
         "workerId": { "type": "string", "description": "Unique ID assigned by admin for workers." },
         "workerPass": { "type": "string", "description": "Password assigned by admin for workers." }
@@ -64,7 +66,7 @@
     }
   },
   "auth": {
-    "providers": ["anonymous", "password"]
+    "providers": ["anonymous", "password", "google.com"]
   },
   "firestore": {
     "/reports/{reportId}": {

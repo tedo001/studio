@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser, useFirestore } from "@/firebase";
+import { useUser, useFirestore, useAuth } from "@/firebase";
 import { doc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +17,7 @@ type Role = 'admin' | 'user' | 'worker' | null;
 
 export default function LandingPage() {
   const { user, loading: authLoading } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -40,8 +43,7 @@ export default function LandingPage() {
     if (!email || !password) return;
     setIsLoggingIn(true);
     
-    // Updated credentials to match user screenshot: admin@gov.in
-    // Password remains madurai2024 or can be flexible for this prototype
+    // Updated credentials: admin@gov.in / madurai2024
     if ((email === "admin@madurai.gov" || email === "admin@gov.in") && password === "madurai2024") {
       if (user && db) {
         const userRef = doc(db, "users", user.uid);
@@ -60,12 +62,37 @@ export default function LandingPage() {
   };
 
   const startAsUser = async () => {
-    setIsLoggingIn(true);
-    if (user && db) {
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, { email: user.email || "citizen@gov.in", role: "user" }, { merge: true });
+    if (!auth || !db) {
+      toast({ variant: "destructive", title: "System Not Ready", description: "Firebase initialization in progress..." });
+      return;
     }
-    router.push("/user");
+    
+    setIsLoggingIn(true);
+    const provider = new GoogleAuthProvider();
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const currentUser = result.user;
+      
+      const userRef = doc(db, "users", currentUser.uid);
+      await setDoc(userRef, { 
+        email: currentUser.email, 
+        displayName: currentUser.displayName,
+        photoURL: currentUser.photoURL,
+        role: "user" 
+      }, { merge: true });
+      
+      toast({ title: "Identity Verified", description: `Welcome back, ${currentUser.displayName}.` });
+      router.push("/user");
+    } catch (error: any) {
+      console.error("Google Auth Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Sign-In Failed",
+        description: error.message || "Failed to authenticate with Google.",
+      });
+      setIsLoggingIn(false);
+    }
   };
 
   const handleWorkerLogin = async () => {
@@ -229,8 +256,13 @@ export default function LandingPage() {
               <h2 className="text-3xl font-black font-headline tracking-tighter uppercase italic relative z-10">Citizen Portal</h2>
               <p className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em] relative z-10 italic">Live Infrastructure Reporting</p>
             </div>
-            <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-2xl transition-transform active:scale-95 bg-blue-600 hover:bg-blue-700 italic" onClick={startAsUser} disabled={isLoggingIn}>
-              {isLoggingIn ? <Loader2 className="animate-spin h-10 w-10" /> : "START REPORTING"}
+            <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-2xl transition-transform active:scale-95 bg-blue-600 hover:bg-blue-700 italic flex items-center justify-center gap-3" onClick={startAsUser} disabled={isLoggingIn}>
+              {isLoggingIn ? <Loader2 className="animate-spin h-10 w-10" /> : (
+                <>
+                  <Globe className="h-8 w-8" />
+                  GOOGLE SIGN-IN
+                </>
+              )}
             </Button>
             <Button variant="ghost" className="w-full font-black text-slate-400 text-[10px] uppercase tracking-[0.5em] italic" onClick={() => setRole(null)}>Return to Selection</Button>
           </div>

@@ -12,6 +12,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface Report {
   id: string;
@@ -29,7 +30,7 @@ export default function UserDashboard() {
   const db = useFirestore();
   const router = useRouter();
 
-  // Unified data tracking
+  // Unified data tracking for authenticated user
   const reportsQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(
@@ -45,7 +46,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
         <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground font-medium">Authenticating Citizen...</p>
+        <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Authenticating Citizen...</p>
       </div>
     );
   }
@@ -53,89 +54,100 @@ export default function UserDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-background relative pb-24">
       {/* Header */}
-      <header className="p-6 pt-10 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-20">
-        <div className="flex items-center space-x-2">
-          <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-            <Leaf className="h-6 w-6 text-primary" />
+      <header className="p-6 pt-10 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-20 border-b">
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-12 w-12 border-2 border-primary shadow-lg">
+            {user?.photoURL ? (
+              <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />
+            ) : (
+              <AvatarFallback className="bg-primary/10 text-primary font-black">
+                {user?.displayName?.[0] || <User className="h-6 w-6" />}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black tracking-tight text-slate-900 font-headline uppercase italic leading-none">
+              {user?.displayName?.split(' ')[0]}&apos;s Feed
+            </h1>
+            <span className="text-[9px] font-black uppercase text-primary tracking-widest">Verified Citizen</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary font-headline">
-            My Incident Feed
-          </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => router.push("/")} title="Change Role">
-            <Home className="h-5 w-5 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="rounded-2xl h-10 w-10 hover:bg-slate-100" onClick={() => router.push("/")}>
+            <Home className="h-5 w-5 text-slate-600" />
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => router.push("/")} title="Logout">
-            <LogOut className="h-5 w-5 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="rounded-2xl h-10 w-10 hover:bg-red-50 hover:text-red-600" onClick={() => router.push("/")}>
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </header>
 
       {/* Reports Feed */}
-      <div className="flex-1 px-6 space-y-4 overflow-y-auto">
+      <div className="flex-1 px-6 space-y-6 pt-6 overflow-y-auto">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Tracking</h2>
-          <div className="flex items-center gap-1 text-[9px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">
-            <RefreshCw className="h-2 w-2 animate-spin" /> Live Updates
+          <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] italic">Active Monitoring</h2>
+          <div className="flex items-center gap-2 text-[9px] font-black text-primary bg-primary/5 px-3 py-1 rounded-full animate-glow">
+            <RefreshCw className="h-3 w-3 animate-spin" /> LIVE UPDATES
           </div>
         </div>
 
         {reportsLoading ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-56 w-full rounded-2xl" />
+              <Skeleton key={i} className="h-64 w-full rounded-[2.5rem]" />
             ))}
           </div>
         ) : !reports || reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-            <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-sm">
-              <AlertCircle className="h-8 w-8 text-slate-300" />
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-8 bg-slate-50/50 rounded-[4rem] border-4 border-dashed border-slate-100">
+            <div className="h-24 w-24 bg-white rounded-[2rem] flex items-center justify-center shadow-inner animate-anti-gravity">
+              <Leaf className="h-12 w-12 text-slate-200" />
             </div>
-            <div>
-              <p className="text-lg font-bold text-slate-600">No Reports Filed</p>
-              <p className="text-sm text-muted-foreground px-10">Help keep Madurai clean. Submit your first environmental report today.</p>
+            <div className="space-y-2">
+              <p className="text-xl font-black text-slate-400 uppercase italic">Sector Clear</p>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest max-w-[200px] mx-auto opacity-60">Help keep Madurai clean. Submit your first environmental report today.</p>
             </div>
             <Link href="/report/new">
-              <Button className="mt-4 rounded-xl px-8 h-12 shadow-md">
+              <Button className="rounded-2xl px-10 h-16 shadow-2xl font-black uppercase italic tracking-tight">
                 Get Started
               </Button>
             </Link>
           </div>
         ) : (
           reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden border-none shadow-lg rounded-2xl group active:scale-[0.98] transition-transform mb-4">
-              <div className="relative h-56 w-full bg-slate-100">
+            <Card key={report.id} className="overflow-hidden border-none shadow-2xl rounded-[3rem] group active:scale-[0.98] transition-all duration-300 mb-8 bg-white">
+              <div className="relative h-64 w-full bg-slate-100">
                 <Image 
                   src={report.imageUrl} 
                   alt={report.aiCategory} 
                   fill 
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
-                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                <div className="absolute top-6 left-6 flex flex-col gap-3">
                   <div className="flex gap-2">
-                    <Badge className="bg-white/95 text-primary border-none font-bold shadow-md h-7 px-3 text-[10px] uppercase">
+                    <Badge className="bg-white/95 text-primary border-none font-black shadow-2xl h-8 px-4 text-[10px] uppercase italic rounded-xl">
                       {report.aiCategory}
                     </Badge>
                     <Badge 
-                      variant={report.status === 'Resolved' ? 'default' : 'secondary'} 
-                      className={`font-bold shadow-md h-7 px-3 text-[10px] uppercase ${report.status === 'Pending' ? 'bg-orange-100 text-orange-700' : report.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : ''}`}
+                      className={`font-black shadow-2xl h-8 px-4 text-[10px] uppercase italic rounded-xl border-none ${
+                        report.status === 'Resolved' ? 'bg-green-500 text-white' : 
+                        report.status === 'Pending' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'
+                      }`}
                     >
                       {report.status}
                     </Badge>
                   </div>
-                  <Badge variant="outline" className="bg-black/40 text-white border-none backdrop-blur-md text-[9px] font-bold py-1 truncate max-w-[180px]">
-                    <MapPin className="h-2 w-2 mr-1 inline" /> {report.locationName || "Madurai Area"}
+                  <Badge variant="outline" className="bg-black/30 text-white border-white/20 backdrop-blur-xl text-[9px] font-black py-2 px-3 truncate max-w-[220px] rounded-lg uppercase tracking-widest">
+                    <MapPin className="h-3 w-3 mr-2 inline text-primary" /> {report.locationName || "Detecting Street..."}
                   </Badge>
                 </div>
               </div>
-              <CardContent className="p-5 flex items-center justify-between bg-white">
-                <div className="flex items-center text-[11px] text-muted-foreground font-bold uppercase tracking-widest">
-                  <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              <CardContent className="p-6 flex items-center justify-between bg-white border-t border-slate-50">
+                <div className="flex items-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                  <AlertCircle className={`h-4 w-4 mr-2 ${report.severity === 'High' ? 'text-red-500' : 'text-primary'}`} />
                   {report.severity} Priority
                 </div>
-                <div className="text-[11px] text-muted-foreground font-semibold bg-slate-50 px-2 py-1 rounded-md">
+                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-inner italic">
                   {report.timestamp?.toDate ? new Date(report.timestamp.toDate()).toLocaleDateString() : 'Syncing...'}
                 </div>
               </CardContent>
@@ -148,8 +160,8 @@ export default function UserDashboard() {
       <div className="fixed bottom-8 left-0 right-0 px-6 max-w-lg mx-auto pointer-events-none">
         <div className="flex justify-center pointer-events-auto">
           <Link href="/report/new">
-            <Button size="lg" className="rounded-full h-20 w-20 shadow-2xl bg-primary hover:bg-primary/90 border-[6px] border-white group active:scale-90 transition-transform">
-              <Plus className="h-10 w-10 group-hover:rotate-90 transition-transform duration-300" />
+            <Button size="lg" className="rounded-[2.5rem] h-24 w-24 shadow-2xl bg-primary hover:bg-primary/90 border-[8px] border-white group active:scale-90 transition-all duration-300">
+              <Plus className="h-12 w-12 text-white group-hover:rotate-90 transition-transform duration-500" />
             </Button>
           </Link>
         </div>
