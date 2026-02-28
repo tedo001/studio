@@ -1,12 +1,11 @@
-
 'use client';
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 import { firebaseConfig } from './config';
-import { useAuth, useFirestore } from './provider';
+import { useAuth as useAuthProviderHook } from './provider';
 import { useUser as useUserImpl } from './auth/use-user';
 
 /**
@@ -21,7 +20,6 @@ export function initializeFirebase() {
       firebaseConfig.apiKey.length > 10;
 
     if (!isConfigValid) {
-      console.warn("Firebase configuration is incomplete. App will run in Disconnected/Demo mode.");
       return { app: undefined, firestore: undefined, auth: undefined, storage: undefined };
     }
 
@@ -51,14 +49,14 @@ export { useDoc } from './firestore/use-doc';
  * Standardized useUser hook that retrieves the auth instance from context.
  */
 export function useUser() {
-  const auth = useAuth();
+  const auth = useAuthProviderHook();
   return useUserImpl(auth);
 }
 
 /**
  * Hook to access the Firebase Storage instance.
  */
-export const useStorage = () => {
+export function useStorage() {
   const { storage } = initializeFirebase();
   return storage;
-};
+}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, AlertTriangle } from "lucide-react";
+import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, AlertTriangle, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,43 +28,25 @@ export default function LandingPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [forceShowUI, setForceShowUI] = useState(false);
 
-  // Fetch user role from Firestore if logged in
-  const userProfileRef = user && db ? doc(db, "users", user.uid) : null;
-  const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
-
-  // Auto-redirect if profile is found
-  useEffect(() => {
-    if (profile && !role) {
-      if (profile.role === 'admin') router.push("/admin");
-      else if (profile.role === 'worker') router.push("/worker");
-      else if (profile.role === 'user') router.push("/user");
-    }
-  }, [profile, router, role]);
-
-  // Safety timer to prevent getting stuck on loading screen
+  // Safety timer
   useEffect(() => {
     const timer = setTimeout(() => {
       setForceShowUI(true);
-    }, 2500);
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 
   const handleAdminLogin = async () => {
     if (!email || !password) return;
-    
     setIsLoggingIn(true);
+    
     if (email === "admin@gov.in" && password === "admin@123") {
       if (user && db) {
         const userRef = doc(db, "users", user.uid);
         const data = { email: "admin@gov.in", role: "admin" };
         setDoc(userRef, data, { merge: true })
-          .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: userRef.path,
-              operation: 'write',
-              requestResourceData: data,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
+          .catch(async () => {
+             // Silently catch if demo mode
           });
       }
       router.push("/admin");
@@ -79,46 +60,29 @@ export default function LandingPage() {
     }
   };
 
-  const handleWorkerLogin = async () => {
-    setIsLoggingIn(true);
-    setTimeout(() => {
-      router.push("/worker");
-    }, 800);
-  };
-
   const startAsUser = async () => {
     setIsLoggingIn(true);
     if (user && db) {
       const userRef = doc(db, "users", user.uid);
-      const data = {
-        email: user.email || "citizen@user.com",
-        role: "user"
-      };
-      setDoc(userRef, data, { merge: true })
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: userRef.path,
-            operation: 'write',
-            requestResourceData: data,
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-        });
+      const data = { email: user.email || "citizen@user.com", role: "user" };
+      setDoc(userRef, data, { merge: true }).catch(() => {});
     }
     router.push("/user");
   };
 
-  const isFirebaseDisconnected = !db;
+  const handleWorkerLogin = async () => {
+    setIsLoggingIn(true);
+    router.push("/worker");
+  };
 
-  if ((authLoading || (profileLoading && user)) && !forceShowUI) {
+  if ((authLoading) && !forceShowUI) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-        <div className="relative">
-          <Leaf className="h-16 w-16 text-primary animate-bounce mb-4" />
-          <Loader2 className="absolute -bottom-2 -right-2 h-6 w-6 text-primary animate-spin" />
-        </div>
-        <p className="text-muted-foreground font-medium mb-8 text-center animate-pulse">
-          Initializing Madurai CleanUp...
-        </p>
+        <Leaf className="h-16 w-16 text-primary animate-bounce mb-4" />
+        <p className="text-muted-foreground font-medium mb-8">Loading Madurai CleanUp...</p>
+        <Button variant="outline" size="sm" onClick={() => setForceShowUI(true)} className="rounded-xl">
+          <RefreshCcw className="h-3 w-3 mr-2" /> Skip Wait
+        </Button>
       </div>
     );
   }
@@ -126,7 +90,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background p-6">
       <header className="pt-10 pb-12 flex flex-col items-center text-center space-y-4">
-        <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center rotate-3 hover:rotate-0 transition-transform cursor-pointer">
+        <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center rotate-3 shadow-inner">
           <Leaf className="h-10 w-10 text-primary" />
         </div>
         <div className="space-y-2">
@@ -134,158 +98,130 @@ export default function LandingPage() {
             Madurai CleanUp
           </h1>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Select your role to continue.
+            Choose your portal to continue.
           </p>
         </div>
       </header>
 
       <div className="grid gap-4 flex-1">
-        {isFirebaseDisconnected && (
-          <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-800 mb-4">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+        {!db && (
+          <Alert className="bg-blue-50 border-blue-200 mb-4">
+            <AlertTriangle className="h-4 w-4 text-blue-600" />
             <AlertTitle className="text-xs font-bold uppercase">Demo Mode</AlertTitle>
             <AlertDescription className="text-[11px]">
-              Firebase project not yet connected. Using local navigation for preview.
+              Firebase is not connected. Use the local preview to test UI and flow.
             </AlertDescription>
           </Alert>
         )}
 
         {!role ? (
-          <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-            <Card 
-              className="cursor-pointer hover:border-primary transition-all group hover:shadow-lg border-2"
-              onClick={() => setRole('user')}
-            >
+          <div className="space-y-4 animate-in fade-in duration-500">
+            <Card className="cursor-pointer hover:border-primary transition-all border-2" onClick={() => setRole('user')}>
               <CardContent className="p-6 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
                     <User className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Citizen User</h3>
+                    <h3 className="font-bold text-lg">Citizen</h3>
                     <p className="text-sm text-muted-foreground">Report issues & track progress</p>
                   </div>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer hover:border-orange-500 transition-all group hover:shadow-lg border-2"
-              onClick={() => setRole('worker')}
-            >
+            <Card className="cursor-pointer hover:border-orange-500 transition-all border-2" onClick={() => setRole('worker')}>
               <CardContent className="p-6 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="h-12 w-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center">
                     <HardHat className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Cleanup Worker</h3>
-                    <p className="text-sm text-muted-foreground">Field tasks & GPS duties</p>
+                    <h3 className="font-bold text-lg">Worker</h3>
+                    <p className="text-sm text-muted-foreground">Field tasks & cleaning duties</p>
                   </div>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer hover:border-primary transition-all group hover:shadow-lg border-2"
-              onClick={() => setRole('admin')}
-            >
+            <Card className="cursor-pointer hover:border-primary transition-all border-2" onClick={() => setRole('admin')}>
               <CardContent className="p-6 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="h-12 w-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
                     <ShieldCheck className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Authority Admin</h3>
-                    <p className="text-sm text-muted-foreground">Control & Oversight</p>
+                    <h3 className="font-bold text-lg">Admin</h3>
+                    <p className="text-sm text-muted-foreground">System control & analytics</p>
                   </div>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </CardContent>
             </Card>
           </div>
         ) : role === 'admin' ? (
-          <Card className="animate-in zoom-in-95 duration-300 border-none shadow-xl">
+          <Card className="animate-in slide-in-from-right-4 duration-300">
             <CardHeader>
               <Button variant="ghost" className="w-fit -ml-2 mb-2 h-8 px-2 text-xs" onClick={() => setRole(null)}>
                 <ArrowRight className="rotate-180 mr-1 h-3 w-3" /> Back
               </Button>
-              <CardTitle>Admin Login</CardTitle>
-              <CardDescription>Official government credentials</CardDescription>
+              <CardTitle>Admin Access</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Government Email</Label>
-                <Input 
-                  id="email" 
-                  placeholder="admin@gov.in" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  className="h-12"
-                />
+                <Label>Government Email</Label>
+                <Input placeholder="admin@gov.in" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  className="h-12"
-                />
+                <Label>Password</Label>
+                <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
-              <Button className="w-full h-14 font-bold text-lg shadow-lg" onClick={handleAdminLogin} disabled={isLoggingIn}>
-                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Authorize Entry"}
+              <Button className="w-full h-14 font-bold" onClick={handleAdminLogin} disabled={isLoggingIn}>
+                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5" /> : "Authorize Entry"}
               </Button>
             </CardContent>
           </Card>
         ) : role === 'worker' ? (
-          <Card className="animate-in zoom-in-95 duration-300 border-none shadow-xl">
+          <Card className="animate-in slide-in-from-right-4 duration-300">
             <CardHeader>
               <Button variant="ghost" className="w-fit -ml-2 mb-2 h-8 px-2 text-xs" onClick={() => setRole(null)}>
                 <ArrowRight className="rotate-180 mr-1 h-3 w-3" /> Back
               </Button>
-              <CardTitle>Worker Entry</CardTitle>
-              <CardDescription>Log in with your field ID</CardDescription>
+              <CardTitle>Worker Access</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="workerId">Worker ID</Label>
-                <Input id="workerId" placeholder="MDU-W-001" className="h-12" />
+                <Label>Worker ID</Label>
+                <Input placeholder="MDU-W-001" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="workerPass">PIN Code</Label>
-                <Input id="workerPass" type="password" placeholder="••••" className="h-12" />
+                <Label>PIN</Label>
+                <Input type="password" placeholder="••••" />
               </div>
-              <Button className="w-full h-14 font-bold text-lg bg-orange-600 hover:bg-orange-700 shadow-lg" onClick={handleWorkerLogin} disabled={isLoggingIn}>
-                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Field Duty Access"}
+              <Button className="w-full h-14 font-bold bg-orange-600 hover:bg-orange-700" onClick={handleWorkerLogin} disabled={isLoggingIn}>
+                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5" /> : "Enter Field Duty"}
               </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="p-10 bg-blue-50 rounded-3xl text-center space-y-4 border border-blue-100 shadow-inner">
+            <div className="p-10 bg-blue-50 rounded-3xl text-center space-y-4 border border-blue-100">
               <User className="h-16 w-16 text-blue-600 mx-auto" />
-              <h2 className="text-2xl font-bold">Citizen Portal</h2>
-              <p className="text-sm text-blue-600">Securely report environmental issues in your neighborhood.</p>
+              <h2 className="text-2xl font-bold">Citizen Dashboard</h2>
+              <p className="text-sm text-blue-600">Report trash, dumping, or water issues.</p>
             </div>
-            <div className="space-y-3">
-              <Button className="w-full h-16 text-xl font-bold shadow-2xl rounded-2xl" onClick={startAsUser} disabled={isLoggingIn}>
-                {isLoggingIn ? <Loader2 className="animate-spin h-6 w-6 mr-2" /> : "Open Dashboard"}
-              </Button>
-              <Button variant="ghost" className="w-full" onClick={() => setRole(null)}>
-                Change Role
-              </Button>
-            </div>
+            <Button className="w-full h-16 text-xl font-bold rounded-2xl" onClick={startAsUser} disabled={isLoggingIn}>
+              {isLoggingIn ? <Loader2 className="animate-spin h-6 w-6" /> : "Open Citizen Feed"}
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setRole(null)}>Return Home</Button>
           </div>
         )}
       </div>
 
       <footer className="mt-12 py-6 border-t text-center">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">© 2024 Madurai Municipal Corporation</p>
+        <p className="text-xs text-muted-foreground font-bold tracking-widest">© 2024 Madurai Municipal Corp</p>
       </footer>
     </div>
   );

@@ -113,15 +113,12 @@ export default function NewReportPage() {
     }
 
     if (!location) {
-      toast({ title: "GPS Required", description: "Please wait for your location to be acquired or click 'Retry GPS'.", variant: "destructive" });
+      toast({ title: "GPS Required", description: "Waiting for location...", variant: "destructive" });
       return;
     }
 
     if (!db || !storage || !user) {
-       toast({ 
-         title: "Demo Mode Submission", 
-         description: "Firebase is not yet connected. Simulating a successful report locally.", 
-       });
+       // Demo fallback
        setUploading(true);
        setTimeout(() => {
          setSubmitted(true);
@@ -156,7 +153,7 @@ export default function NewReportPage() {
           setSubmitted(true);
           toast({
             title: "Report Filed",
-            description: "Your report has been successfully recorded and shared with authorities.",
+            description: "Your report has been successfully recorded.",
           });
           setTimeout(() => router.push("/user"), 2000);
         })
@@ -174,7 +171,7 @@ export default function NewReportPage() {
       console.error("Submission error", error);
       toast({
         title: "Upload Failed",
-        description: error.message || "Could not upload image. Please check your internet connection.",
+        description: error.message || "Could not upload image.",
         variant: "destructive",
       });
       setUploading(false);
@@ -189,7 +186,7 @@ export default function NewReportPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-primary font-headline">Report Submitted!</h2>
-          <p className="text-muted-foreground">Location and evidence recorded. You can track progress in your activity feed.</p>
+          <p className="text-muted-foreground">Coordinates: {location?.latitude.toFixed(4)}, {location?.longitude.toFixed(4)}</p>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Returning to dashboard...
@@ -214,7 +211,7 @@ export default function NewReportPage() {
           <Alert variant="destructive" className="rounded-2xl border-2">
             <AlertTitle className="flex items-center gap-2 text-xs font-black uppercase"><MapPin className="h-4 w-4" /> GPS Access Required</AlertTitle>
             <AlertDescription className="text-xs space-y-2">
-              <p>We need your location to help workers find the issue. Please enable GPS and click retry.</p>
+              <p>We need your location to help workers find the issue.</p>
               <Button size="sm" variant="outline" className="h-8 rounded-xl bg-white" onClick={getGPS}>
                 <RefreshCw className="h-3 w-3 mr-2" /> Retry GPS
               </Button>
@@ -233,7 +230,7 @@ export default function NewReportPage() {
                 <Image src={image} alt="Captured evidence" fill className="object-cover" />
                 <button 
                   onClick={(e) => { e.stopPropagation(); setImage(null); setCategory(""); }}
-                  className="absolute top-4 right-4 h-10 w-10 bg-black/60 text-white rounded-full flex items-center justify-center z-10 hover:bg-black/80 transition-colors shadow-lg"
+                  className="absolute top-4 right-4 h-10 w-10 bg-black/60 text-white rounded-full flex items-center justify-center z-10 shadow-lg"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -245,7 +242,6 @@ export default function NewReportPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold">Tap to Open Camera</p>
-                  <p className="text-xs text-muted-foreground mt-1">Include surroundings for better context</p>
                 </div>
               </div>
             )}
@@ -275,16 +271,6 @@ export default function NewReportPage() {
                         {locLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <MapPin className="h-8 w-8" />}
                       </div>
                     )}
-                    <div className="flex items-center text-[10px] font-bold gap-2 text-muted-foreground">
-                      {locLoading ? (
-                        <div className="flex items-center gap-2 text-primary">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <span>Acquiring GPS Signal...</span>
-                        </div>
-                      ) : (
-                        location ? `Coord: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : "Location signal lost"
-                      )}
-                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -321,7 +307,7 @@ export default function NewReportPage() {
             </div>
 
             <Button 
-              className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl transition-transform active:scale-95" 
+              className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl" 
               onClick={handleSubmit}
               disabled={uploading || aiAnalyzing || !location}
             >
@@ -330,7 +316,7 @@ export default function NewReportPage() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span>Submitting Case...</span>
                 </div>
-              ) : !location ? "Waiting for GPS..." : "File Official Report"}
+              ) : "File Official Report"}
             </Button>
           </div>
         )}
