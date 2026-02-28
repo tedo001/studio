@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Memoize the query to fetch ALL reports for admin
+  // Memoize queries to ensure they are stable and don't cause infinite re-renders
   const reportsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));

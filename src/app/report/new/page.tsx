@@ -118,7 +118,7 @@ export default function NewReportPage() {
     }
 
     if (!db || !storage || !user) {
-       // Demo fallback
+       // Demo fallback for previewing flow without connected project
        setUploading(true);
        setTimeout(() => {
          setSubmitted(true);
@@ -143,7 +143,7 @@ export default function NewReportPage() {
         status: "Pending",
         timestamp: serverTimestamp(),
         userId: user.uid,
-        location: location,
+        location: location, // Consistently storing as {latitude, longitude}
       };
 
       const reportsCollection = collection(db, "reports");

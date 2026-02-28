@@ -5,7 +5,7 @@ import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy, where } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, History, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw } from "lucide-react";
+import { Plus, MapPin, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +27,7 @@ export default function UserDashboard() {
   const db = useFirestore();
   const router = useRouter();
 
-  // Memoize the query to prevent infinite re-renders and slowness
-  // uses onSnapshot internally via useCollection for continuous tracking
+  // Unified data tracking: Memoized query filtered by the logged-in user's UID
   const reportsQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(
