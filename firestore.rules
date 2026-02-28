@@ -1,8 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // DEVELOPMENT MODE: Global access to ensure interconnected modules work without permission errors.
-    // In production, these should be restricted to specific roles/UIDs.
+    // GLOBAL ACCESS MODE: Unlocked for initial publication and demo.
+    // This ensures all interconnected modules (Citizen, Admin, Workforce) function without permission errors.
     match /{allPaths=**} {
       allow read, write: if true;
     }
