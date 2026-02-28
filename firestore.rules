@@ -2,17 +2,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ALLOW AUTHENTICATED ACCESS FOR PROTOTYPE ROBUSTNESS
-    // This ensures Admin, User, and Worker can all see relevant reports
-    // across the Anti-Gravity network.
+    // RE-DEPLOYMENT TRIGGER: 2024-05-21-01
+    // Explicitly allowing authenticated access to core collections
+    // to ensure prototype robustness across Admin, User, and Worker modules.
     
-    match /{document=**} {
+    match /users/{userId} {
       allow read, write: if request.auth != null;
     }
     
-    // Future production hardening:
-    // - Restrict user-specific data
-    // - Enforce schema validation
-    // - Role-based write access for status updates
+    match /reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Global fallback to ensure no stray requests are blocked during prototyping
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
   }
 }

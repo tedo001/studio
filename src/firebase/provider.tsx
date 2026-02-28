@@ -78,10 +78,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (!firebaseUser) {
-          // To prevent "Missing or insufficient permissions" (auth: null) in prototypes,
-          // we establish an anonymous session if no user is currently signed in.
+          // If no user is signed in, we establish an anonymous session.
+          // This ensures that request.auth is NOT null for our security rules.
           try {
             await signInAnonymously(auth);
+            // signInAnonymously will trigger this callback again with the new user.
           } catch (e: any) {
             console.warn("Anonymous sign-in fallback failed:", e.message);
             setUserAuthState({ user: null, isUserLoading: false, userError: e });

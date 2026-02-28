@@ -56,6 +56,7 @@ export default function AdminDashboard() {
       enrolledAt: serverTimestamp()
     };
 
+    // We don't await addDoc to maintain UI responsiveness
     addDoc(usersCollection, data)
       .then(() => {
         setWorkerId("");
