@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin, AlertCircle, TrendingUp } from "lucide-react";
+import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin, AlertCircle, TrendingUp, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { MapPreview } from "@/components/MapPreview";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function AdminDashboard() {
   const db = useFirestore();
@@ -28,9 +29,10 @@ export default function AdminDashboard() {
   const [isAdding, setIsAdding] = useState(false);
 
   // Memoize queries to prevent unnecessary re-renders and slowness
+  // Removed orderBy temporarily to ensure visibility even if indices are still provisioning
   const reportsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, "reports"), orderBy("timestamp", "desc"));
+    return collection(db, "reports");
   }, [db]);
 
   const usersQuery = useMemo(() => {
@@ -42,8 +44,13 @@ export default function AdminDashboard() {
   const { data: users, loading: usersLoading } = useCollection(usersQuery);
 
   const handleAddWorker = async () => {
-    if (!workerId || !workerPass || !workerEmail || !db) {
-      toast({ title: "Validation Error", description: "All personnel fields are required.", variant: "destructive" });
+    if (!workerEmail || !workerId || !workerPass) {
+      toast({ title: "Input Required", description: "All personnel fields (Email, ID, PIN) are required.", variant: "destructive" });
+      return;
+    }
+
+    if (!db) {
+      toast({ title: "Database Offline", description: "Firestore is not connected. Please click 'Connect Firebase' in the Studio sidebar.", variant: "destructive" });
       return;
     }
 
@@ -97,6 +104,16 @@ export default function AdminDashboard() {
       </header>
 
       <main className="p-6 space-y-8 max-w-lg mx-auto w-full">
+        {!db && (
+          <Alert variant="destructive" className="rounded-[2rem] border-2 bg-red-50 mb-4 animate-in fade-in zoom-in duration-500">
+            <WifiOff className="h-5 w-5" />
+            <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Connection Blocked</AlertTitle>
+            <AlertDescription className="text-[11px] font-bold">
+              Firebase Firestore is not connected. Use the Studio sidebar to provision your project.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-3 h-20 bg-white border-4 border-slate-100 rounded-[3rem] p-2 shadow-xl mb-8">
             <TabsTrigger value="overview" className="rounded-[2.5rem] text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all italic">Live Ops</TabsTrigger>
