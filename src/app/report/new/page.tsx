@@ -3,13 +3,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore } from "@/firebase";
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { useUser, useFirestore, useStorage } from "@/firebase";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { aiCategorySuggestion } from "@/ai/flows/ai-category-suggestion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Camera, Loader2, CheckCircle, AlertCircle, X, MapPin } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, CheckCircle, X, MapPin } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,10 +17,13 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function NewReportPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const storage = useStorage();
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,10 +39,9 @@ export default function NewReportPage() {
   const [locLoading, setLocLoading] = useState(false);
 
   useEffect(() => {
-    // Enable GPS system
     const getGPS = () => {
       setLocLoading(true);
-      if ("geolocation" in navigator) {
+      if (typeof window !== "undefined" && "geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -93,11 +95,13 @@ export default function NewReportPage() {
   };
 
   const handleSubmit = async () => {
-    if (!image || !user || !db) return;
+    if (!image || !user || !db || !storage) {
+       toast({ title: "Submission Error", description: "Firebase not connected or photo missing.", variant: "destructive" });
+       return;
+    }
 
     setUploading(true);
     try {
-      const storage = getStorage();
       const reportId = Math.random().toString(36).substring(7);
       const storageRef = ref(storage, `reports/${user.uid}/${reportId}.jpg`);
       
@@ -114,8 +118,18 @@ export default function NewReportPage() {
         location: location || null,
       };
 
-      await addDoc(collection(db, "reports"), reportData);
+      const reportsCollection = collection(db, "reports");
+      addDoc(reportsCollection, reportData)
+        .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: reportsCollection.path,
+            operation: 'create',
+            requestResourceData: reportData,
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+        });
 
+      // Optimistic transition
       setSubmitted(true);
       toast({
         title: "Report Filed",
@@ -126,10 +140,11 @@ export default function NewReportPage() {
         router.push("/user");
       }, 2000);
 
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error);
       toast({
         title: "Submission failed",
-        description: "Please check your connection and try again.",
+        description: error.message || "Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {

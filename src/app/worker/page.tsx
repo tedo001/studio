@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function WorkerDashboard() {
   const db = useFirestore();
@@ -30,12 +32,21 @@ export default function WorkerDashboard() {
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (!db) return;
-    try {
-      await updateDoc(doc(db, "reports", id), { status: newStatus });
-      toast({ title: "Status Updated", description: `Job marked as ${newStatus}` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Update Failed" });
-    }
+    const docRef = doc(db, "reports", id);
+    const data = { status: newStatus };
+    
+    updateDoc(docRef, data)
+      .then(() => {
+        toast({ title: "Status Updated", description: `Job marked as ${newStatus}` });
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: data,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   return (

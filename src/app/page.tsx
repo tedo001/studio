@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, RefreshCcw, AlertTriangle } from "lucide-react";
+import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 type Role = 'admin' | 'user' | 'worker' | null;
 
@@ -53,16 +55,18 @@ export default function LandingPage() {
     
     setIsLoggingIn(true);
     if (email === "admin@gov.in" && password === "admin@123") {
-      // If Firebase is connected, save the role
       if (user && db) {
-        try {
-          await setDoc(doc(db, "users", user.uid), {
-            email: "admin@gov.in",
-            role: "admin"
-          }, { merge: true });
-        } catch (e) {
-          console.warn("Could not save admin role to Firestore, proceeding anyway.");
-        }
+        const userRef = doc(db, "users", user.uid);
+        const data = { email: "admin@gov.in", role: "admin" };
+        setDoc(userRef, data, { merge: true })
+          .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: userRef.path,
+              operation: 'write',
+              requestResourceData: data,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+          });
       }
       router.push("/admin");
     } else {
@@ -77,8 +81,6 @@ export default function LandingPage() {
 
   const handleWorkerLogin = async () => {
     setIsLoggingIn(true);
-    // In a real app, we'd verify the worker ID/Pass against Firestore
-    // For this prototype, we'll allow entry to show the UI
     setTimeout(() => {
       router.push("/worker");
     }, 800);
@@ -87,14 +89,20 @@ export default function LandingPage() {
   const startAsUser = async () => {
     setIsLoggingIn(true);
     if (user && db) {
-      try {
-        await setDoc(doc(db, "users", user.uid), {
-          email: user.email || "citizen@user.com",
-          role: "user"
-        }, { merge: true });
-      } catch (e) {
-        console.warn("Could not save user role, proceeding to dashboard.");
-      }
+      const userRef = doc(db, "users", user.uid);
+      const data = {
+        email: user.email || "citizen@user.com",
+        role: "user"
+      };
+      setDoc(userRef, data, { merge: true })
+        .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'write',
+            requestResourceData: data,
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+        });
     }
     router.push("/user");
   };

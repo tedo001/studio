@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -9,10 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, FileText, Settings, LogOut, HardHat, Home, Search, Loader2 } from "lucide-react";
+import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function AdminDashboard() {
   const db = useFirestore();
@@ -35,31 +38,40 @@ export default function AdminDashboard() {
     return collection(db, "users");
   }, [db]);
 
-  const { data: reports, loading: reportsLoading } = useCollection(reportsQuery);
-  const { data: users, loading: usersLoading } = useCollection(usersQuery);
+  const { data: reports } = useCollection(reportsQuery);
+  const { data: users } = useCollection(usersQuery);
 
   const handleAddWorker = async () => {
     if (!workerId || !workerPass || !workerEmail || !db) return;
 
     setIsAdding(true);
-    try {
-      await addDoc(collection(db, "users"), {
-        email: workerEmail,
-        role: "worker",
-        workerId,
-        workerPass,
-        createdAt: new Date().toISOString()
-      });
+    const usersCollection = collection(db, "users");
+    const data = {
+      email: workerEmail,
+      role: "worker",
+      workerId,
+      workerPass,
+      createdAt: new Date().toISOString()
+    };
 
-      setWorkerId("");
-      setWorkerPass("");
-      setWorkerEmail("");
-      toast({ title: "Authorized", description: `Worker ${workerId} enrolled successfully.` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Authorization failed." });
-    } finally {
-      setIsAdding(false);
-    }
+    addDoc(usersCollection, data)
+      .then(() => {
+        setWorkerId("");
+        setWorkerPass("");
+        setWorkerEmail("");
+        toast({ title: "Authorized", description: `Worker ${workerId} enrolled successfully.` });
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: usersCollection.path,
+          operation: 'create',
+          requestResourceData: data,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsAdding(false);
+      });
   };
 
   return (
@@ -183,7 +195,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ))}
-          </main>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
