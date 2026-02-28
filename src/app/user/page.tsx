@@ -1,12 +1,10 @@
-
 "use client";
 
-import { useMemo } from "react";
-import { useUser, useFirestore, useCollection } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, where } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw } from "lucide-react";
+import { Plus, MapPin, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -26,12 +24,12 @@ interface Report {
 }
 
 export default function UserDashboard() {
-  const { user, loading: authLoading } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
   const db = useFirestore();
   const router = useRouter();
 
   // Unified data tracking for authenticated user
-  const reportsQuery = useMemo(() => {
+  const reportsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, "reports"),
@@ -40,7 +38,7 @@ export default function UserDashboard() {
     );
   }, [db, user?.uid]);
 
-  const { data: reports, loading: reportsLoading } = useCollection<Report>(reportsQuery);
+  const { data: reports, isLoading: reportsLoading } = useCollection<Report>(reportsQuery);
 
   if (authLoading) {
     return (
@@ -67,7 +65,7 @@ export default function UserDashboard() {
           </Avatar>
           <div className="flex flex-col">
             <h1 className="text-xl font-black tracking-tight text-slate-900 font-headline uppercase italic leading-none">
-              {user?.displayName?.split(' ')[0]}&apos;s Feed
+              {user?.displayName?.split(' ')[0] || "Citizen"}&apos;s Feed
             </h1>
             <span className="text-[9px] font-black uppercase text-primary tracking-widest">Verified Citizen</span>
           </div>

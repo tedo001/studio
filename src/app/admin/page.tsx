@@ -1,26 +1,25 @@
-
 "use client";
 
-import { useState, useMemo } from "react";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin, AlertCircle, TrendingUp, WifiOff } from "lucide-react";
+import { ShieldCheck, UserPlus, LogOut, HardHat, Loader2, MapPin, AlertCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { MapPreview } from "@/components/MapPreview";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function AdminDashboard() {
   const db = useFirestore();
+  const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -29,9 +28,9 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Use the optimized memoization hook
-  const reportsRef = useMemoFirebase(() => db ? collection(db, "reports") : null, [db]);
-  const usersRef = useMemoFirebase(() => db ? collection(db, "users") : null, [db]);
+  // Optimized memoization: Wait for authenticated user before querying
+  const reportsRef = useMemoFirebase(() => (db && user) ? collection(db, "reports") : null, [db, user]);
+  const usersRef = useMemoFirebase(() => (db && user) ? collection(db, "users") : null, [db, user]);
 
   const { data: reports, isLoading: reportsLoading } = useCollection(reportsRef);
   const { data: users, isLoading: usersLoading } = useCollection(usersRef);

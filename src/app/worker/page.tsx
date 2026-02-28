@@ -1,12 +1,10 @@
-
 "use client";
 
-import { useMemo } from "react";
-import { useFirestore, useCollection } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, updateDoc, doc, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin, AlertCircle } from "lucide-react";
+import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -17,19 +15,20 @@ import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/e
 
 export default function WorkerDashboard() {
   const db = useFirestore();
+  const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  const jobsQuery = useMemo(() => {
-    if (!db) return null;
+  const jobsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
     return query(
       collection(db, "reports"), 
       where("status", "in", ["Pending", "In Progress"]),
       orderBy("timestamp", "desc")
     );
-  }, [db]);
+  }, [db, user]);
 
-  const { data: jobs, loading } = useCollection(jobsQuery);
+  const { data: jobs, isLoading: loading } = useCollection(jobsQuery);
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (!db) return;
