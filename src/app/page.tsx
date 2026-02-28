@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2 } from "lucide-react";
+import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, RefreshCcw, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,30 +24,39 @@ export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [forceShowUI, setForceShowUI] = useState(false);
 
   // Fetch user role from Firestore if logged in
   const userProfileRef = user ? doc(db!, "users", user.uid) : null;
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
   useEffect(() => {
-    if (profile) {
+    if (profile && !role) {
       if (profile.role === 'admin') router.push("/admin");
       else if (profile.role === 'worker') router.push("/worker");
       else if (profile.role === 'user') router.push("/user");
     }
-  }, [profile, router]);
+  }, [profile, router, role]);
 
   const handleAdminLogin = async () => {
+    if (!email || !password) return;
+    
+    setIsLoggingIn(true);
     if (email === "admin@gov.in" && password === "admin@123") {
-      setIsLoggingIn(true);
-      // In a real app, we'd use Firebase Auth password sign-in here.
-      // For this prototype, we'll assign the role to the current anonymous user if they match.
       if (user && db) {
-        await setDoc(doc(db, "users", user.uid), {
-          email: "admin@gov.in",
-          role: "admin"
-        }, { merge: true });
-        router.push("/admin");
+        try {
+          await setDoc(doc(db, "users", user.uid), {
+            email: "admin@gov.in",
+            role: "admin"
+          }, { merge: true });
+          router.push("/admin");
+        } catch (e) {
+          toast({ variant: "destructive", title: "Update Failed", description: "Could not set admin role." });
+          setIsLoggingIn(false);
+        }
+      } else {
+        toast({ variant: "destructive", title: "Error", description: "Firebase not initialized." });
+        setIsLoggingIn(false);
       }
     } else {
       toast({
@@ -55,37 +64,61 @@ export default function LandingPage() {
         title: "Access Denied",
         description: "Invalid admin credentials.",
       });
+      setIsLoggingIn(false);
     }
   };
 
   const handleWorkerLogin = async () => {
     setIsLoggingIn(true);
-    // Workers log in via their assigned ID and Pass (stored in users collection)
-    // For MVP, we'll check if a user with this role exists.
-    // In production, this would be a specialized auth flow.
     toast({
       title: "Worker Login",
       description: "Checking credentials...",
     });
-    // Simplified for prototype: normally would query Firestore for workerId/Pass
-    setTimeout(() => setIsLoggingIn(false), 1000);
+    // For prototype, we'll just wait then show an error as ID/PIN check isn't implemented here yet
+    setTimeout(() => {
+      setIsLoggingIn(false);
+      toast({ variant: "destructive", title: "Login Failed", description: "Worker authentication is handled by the city council." });
+    }, 1500);
   };
 
   const startAsUser = async () => {
     if (user && db) {
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email || "anonymous@user.com",
-        role: "user"
-      }, { merge: true });
+      setIsLoggingIn(true);
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email || "anonymous@user.com",
+          role: "user"
+        }, { merge: true });
+        router.push("/user");
+      } catch (e) {
+        setIsLoggingIn(false);
+        router.push("/user"); // Fallback to navigation
+      }
+    } else {
       router.push("/user");
     }
   };
 
-  if (authLoading || profileLoading) {
+  // If loading takes too long or fails, allow user to override
+  if ((authLoading || profileLoading) && !forceShowUI) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
         <Leaf className="h-12 w-12 text-primary animate-bounce mb-4" />
-        <p className="text-muted-foreground font-medium">Madurai CleanUp is loading...</p>
+        <p className="text-muted-foreground font-medium mb-8 text-center">
+          Madurai CleanUp is preparing...
+        </p>
+        <div className="space-y-4 w-full max-w-xs">
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => setForceShowUI(true)}
+          >
+            <RefreshCcw className="mr-2 h-4 w-4" /> Reset & Try Again
+          </Button>
+          <p className="text-[10px] text-center text-muted-foreground">
+            If this screen persists, please check your internet connection or verify your Firebase setup.
+          </p>
+        </div>
       </div>
     );
   }
@@ -166,8 +199,8 @@ export default function LandingPage() {
         ) : role === 'admin' ? (
           <Card className="animate-in zoom-in-95 duration-300">
             <CardHeader>
-              <Button variant="ghost" className="w-fit -ml-2 mb-2" onClick={() => setRole(null)}>
-                Back
+              <Button variant="ghost" className="w-fit -ml-2 mb-2 h-8 px-2 text-xs" onClick={() => setRole(null)}>
+                <ArrowRight className="rotate-180 mr-1 h-3 w-3" /> Back to roles
               </Button>
               <CardTitle>Admin Access</CardTitle>
               <CardDescription>Enter government credentials</CardDescription>
@@ -200,8 +233,8 @@ export default function LandingPage() {
         ) : role === 'worker' ? (
           <Card className="animate-in zoom-in-95 duration-300">
             <CardHeader>
-              <Button variant="ghost" className="w-fit -ml-2 mb-2" onClick={() => setRole(null)}>
-                Back
+              <Button variant="ghost" className="w-fit -ml-2 mb-2 h-8 px-2 text-xs" onClick={() => setRole(null)}>
+                <ArrowRight className="rotate-180 mr-1 h-3 w-3" /> Back to roles
               </Button>
               <CardTitle>Worker Entry</CardTitle>
               <CardDescription>Log in with your assigned ID</CardDescription>
@@ -216,7 +249,7 @@ export default function LandingPage() {
                 <Input id="workerPass" type="password" placeholder="••••" />
               </div>
               <Button className="w-full h-12 font-bold" onClick={handleWorkerLogin} disabled={isLoggingIn}>
-                Login to Field Dashboard
+                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Login to Field Dashboard"}
               </Button>
             </CardContent>
           </Card>
@@ -227,12 +260,14 @@ export default function LandingPage() {
               <h2 className="text-xl font-bold">Welcome, Citizen</h2>
               <p className="text-sm text-blue-600">You can report littering, illegal dumping, and more directly to the city council.</p>
             </div>
-            <Button className="w-full h-14 text-lg font-bold shadow-xl" onClick={startAsUser}>
-              Continue as Citizen
-            </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setRole(null)}>
-              Change Role
-            </Button>
+            <div className="space-y-3">
+              <Button className="w-full h-14 text-lg font-bold shadow-xl" onClick={startAsUser} disabled={isLoggingIn}>
+                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Continue as Citizen"}
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setRole(null)}>
+                Change Role
+              </Button>
+            </div>
           </div>
         )}
       </div>
