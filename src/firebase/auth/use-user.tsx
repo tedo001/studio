@@ -8,19 +8,35 @@ export function useUser(auth: Auth | undefined) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth) return;
+    // If auth is not provided (initialization failed), stop loading immediately
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!isMounted) return;
+
       if (!currentUser) {
         signInAnonymously(auth).catch((error) => {
-          console.error("Anonymous sign-in failed", error);
+          console.warn("Anonymous sign-in failed. This is expected if it's not enabled in the Firebase Console.", error.message);
+          if (isMounted) setLoading(false);
         });
+      } else {
+        setUser(currentUser);
+        setLoading(false);
       }
-      setUser(currentUser);
-      setLoading(false);
+    }, (error) => {
+      console.error("Auth state change error:", error);
+      if (isMounted) setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [auth]);
 
   return { user, loading };

@@ -6,17 +6,17 @@ import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
 
 interface FirebaseContextProps {
-  app: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  app: FirebaseApp | undefined;
+  firestore: Firestore | undefined;
+  auth: Auth | undefined;
 }
 
 const FirebaseContext = createContext<FirebaseContextProps | undefined>(undefined);
 
 export const FirebaseProvider: React.FC<{
-  app: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  app: FirebaseApp | undefined;
+  firestore: Firestore | undefined;
+  auth: Auth | undefined;
   children: React.ReactNode;
 }> = ({ app, firestore, auth, children }) => {
   return (
