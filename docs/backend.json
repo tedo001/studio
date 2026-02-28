@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Report": {
@@ -42,21 +41,13 @@
     "providers": ["google", "password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/reports/{reportId}",
-        "definition": {
-          "entityName": "Report",
-          "description": "Global collection of environmental reports."
-        }
-      },
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "description": "User profiles and workforce credentials."
-        }
-      }
-    ]
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/backend/entities/Report" },
+      "description": "Global collection of environmental reports."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "User profiles and workforce credentials."
+    }
   }
 }
