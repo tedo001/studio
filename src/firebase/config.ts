@@ -1,10 +1,8 @@
-'use client';
-
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  "projectId": "studio-1074957880-79318",
+  "appId": "1:856083253051:web:44c67838554213e8d6d91e",
+  "apiKey": "AIzaSyDC_ylF7F3N69c9ng5vZOKrPMsvogbByYA",
+  "authDomain": "studio-1074957880-79318.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "856083253051"
 };

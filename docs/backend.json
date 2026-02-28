@@ -1,81 +1,76 @@
-
 {
   "entities": {
     "Report": {
-      "title": "Environmental Report",
-      "description": "A report of an environmental issue captured by a user.",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
       "type": "object",
+      "description": "Represents an environmental issue report submitted by a user, including an image and categorized details.",
       "properties": {
-        "imageUrl": {
+        "id": {
           "type": "string",
-          "description": "URL of the uploaded image of the issue."
-        },
-        "aiCategory": {
-          "type": "string",
-          "description": "Category suggested by AI analysis."
-        },
-        "severity": {
-          "type": "string",
-          "enum": ["Low", "Medium", "High"],
-          "description": "The severity level of the issue."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["Pending", "In Progress", "Resolved"],
-          "description": "Current status of the report."
-        },
-        "timestamp": {
-          "type": "object",
-          "description": "Server timestamp of when the report was created."
+          "description": "Unique identifier for the Report entity."
         },
         "userId": {
           "type": "string",
-          "description": "UID of the user who submitted the report."
+          "description": "Identifier of the anonymous user who submitted this report. (Relationship: User 1:N Report)"
         },
-        "location": {
-          "type": "object",
-          "properties": {
-            "latitude": { "type": "number" },
-            "longitude": { "type": "number" }
-          }
-        },
-        "locationName": {
+        "imageUrl": {
           "type": "string",
-          "description": "The human-readable address or area name retrieved via reverse geocoding."
+          "description": "The public URL of the image uploaded to Firebase Storage, depicting the environmental issue.",
+          "format": "uri"
         },
-        "assignedTo": {
+        "aiCategory": {
           "type": "string",
-          "description": "UID of the worker assigned to this report."
+          "description": "An AI-generated category for the environmental issue, e.g., 'Plastic Waste', 'Water Pollution'. This can be populated after initial report submission."
+        },
+        "severity": {
+          "type": "string",
+          "description": "The severity level of the reported environmental issue, as selected by the user (e.g., 'Low', 'Medium', 'High')."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp when the report was created and submitted.",
+          "format": "date-time"
         }
       },
-      "required": ["imageUrl", "aiCategory", "severity", "status", "timestamp", "userId"]
-    },
-    "AppUser": {
-      "title": "Application User",
-      "description": "User profile with role management.",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string" },
-        "displayName": { "type": "string" },
-        "photoURL": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "user", "worker"] },
-        "workerId": { "type": "string", "description": "Unique ID assigned by admin for workers." },
-        "workerPass": { "type": "string", "description": "Password assigned by admin for workers." }
-      },
-      "required": ["email", "role"]
+      "required": [
+        "id",
+        "userId",
+        "imageUrl",
+        "severity",
+        "timestamp"
+      ]
     }
   },
   "auth": {
-    "providers": ["anonymous", "password", "google.com"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/reports/{reportId}": {
-      "schema": "Report",
-      "description": "Collection of environmental issue reports."
-    },
-    "/users/{userId}": {
-      "schema": "AppUser",
-      "description": "Collection of user profiles and roles."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "User-specific collection for environmental issue reports. Each document represents a single report submitted by an anonymous user. The 'userId' in the path matches the 'userId' field within the document, providing explicit ownership for robust authorization independence and secure list operations.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the anonymous user who submitted the report."
+            },
+            {
+              "name": "reportId",
+              "description": "The unique identifier for the environmental issue report."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure prioritizes security, scalability, and debuggability by leveraging path-based ownership for user-specific data. Instead of a single top-level 'reports' collection for all reports, we will structure it as '/users/{userId}/reports/{reportId}'. This approach directly addresses the core design principles:\n\n1.  **Authorization Independence (CRITICAL) & Denormalization:** Each 'Report' document will reside in a path specific to its owner: `/users/{userId}/reports/{reportId}`. The 'Report' entity itself includes a `userId` field, which effectively denormalizes the authorization context. This means security rules can verify ownership (e.g., `request.auth.uid == userId` from the path, or `request.auth.uid == resource.data.userId`) without requiring expensive and problematic `get()` calls to parent documents or other collections. This enables atomic write operations and simplifies rule logic considerably.\n\n2.  **QAPs (Rules are not Filters):** The path-based ownership directly supports secure `list` operations. By placing a user's reports under their specific `/users/{userId}/reports` subcollection, we can implement a simple and robust security rule: `allow list: if request.auth.uid == userId;`. This rule ensures that a user can *only* list documents within their own designated subcollection. Any attempt by a client to query or list reports from another user's subcollection will be automatically denied by the rules, thereby preventing unauthorized data exposure and upholding the Query-as-Permission principle. This avoids the common pitfall where a `list` rule on a top-level collection might inadvertently expose all documents if not handled with complex, less secure `request.query` inspections. The 'Basic Report Display' feature, requiring users to view only *their own* submitted reports, is perfectly supported by this structure."
   }
 }

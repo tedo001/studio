@@ -1,54 +1,50 @@
 'use client';
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
-import { firebaseConfig } from './config';
-import { useAuth as useAuthProviderHook } from './provider';
-import { useUser as useUserImpl } from './auth/use-user';
+import { getFirestore } from 'firebase/firestore'
 
-/**
- * Initializes Firebase services. Handles cases where the configuration might be missing
- * or invalid by returning undefined for services.
- */
+// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  try {
-    const isConfigValid = 
-      firebaseConfig.apiKey && 
-      firebaseConfig.apiKey !== 'undefined' && 
-      firebaseConfig.apiKey.length > 10;
-
-    if (!isConfigValid) {
-      return { app: undefined, firestore: undefined, auth: undefined, storage: undefined };
+  if (!getApps().length) {
+    // Important! initializeApp() is called without any arguments because Firebase App Hosting
+    // integrates with the initializeApp() function to provide the environment variables needed to
+    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
+    // without arguments.
+    let firebaseApp;
+    try {
+      // Attempt to initialize via Firebase App Hosting environment variables
+      firebaseApp = initializeApp();
+    } catch (e) {
+      // Only warn in production because it's normal to use the firebaseConfig to initialize
+      // during development
+      if (process.env.NODE_ENV === "production") {
+        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      }
+      firebaseApp = initializeApp(firebaseConfig);
     }
 
-    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    const firestore = getFirestore(app);
-    const auth = getAuth(app);
-    const storage = getStorage(app);
-
-    return { app, firestore, auth, storage };
-  } catch (error) {
-    console.error("Firebase initialization failed:", error);
-    return { 
-      app: undefined, 
-      firestore: undefined, 
-      auth: undefined,
-      storage: undefined
-    };
+    return getSdks(firebaseApp);
   }
+
+  // If already initialized, return the SDKs with the already initialized App
+  return getSdks(getApp());
+}
+
+export function getSdks(firebaseApp: FirebaseApp) {
+  return {
+    firebaseApp,
+    auth: getAuth(firebaseApp),
+    firestore: getFirestore(firebaseApp)
+  };
 }
 
 export * from './provider';
-export { FirebaseClientProvider } from './client-provider';
-export { useCollection } from './firestore/use-collection';
-export { useDoc } from './firestore/use-doc';
-
-/**
- * Standardized useUser hook that retrieves the auth instance from context.
- */
-export function useUser() {
-  const auth = useAuthProviderHook();
-  return useUserImpl(auth);
-}
+export * from './client-provider';
+export * from './firestore/use-collection';
+export * from './firestore/use-doc';
+export * from './non-blocking-updates';
+export * from './non-blocking-login';
+export * from './errors';
+export * from './error-emitter';
