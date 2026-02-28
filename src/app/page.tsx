@@ -40,12 +40,14 @@ export default function LandingPage() {
     if (!email || !password) return;
     setIsLoggingIn(true);
     
-    // Real-world logic: verify against specific admin credentials
-    if (email === "admin@madurai.gov" && password === "madurai2024") {
+    // Updated credentials to match user screenshot: admin@gov.in
+    // Password remains madurai2024 or can be flexible for this prototype
+    if ((email === "admin@madurai.gov" || email === "admin@gov.in") && password === "madurai2024") {
       if (user && db) {
         const userRef = doc(db, "users", user.uid);
         await setDoc(userRef, { email, role: "admin" }, { merge: true });
       }
+      toast({ title: "Command Authorized", description: "Entering Google Anti-Gravity Operations Center." });
       router.push("/admin");
     } else {
       toast({
@@ -61,7 +63,7 @@ export default function LandingPage() {
     setIsLoggingIn(true);
     if (user && db) {
       const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, { email: user.email || "citizen@madurai.gov", role: "user" }, { merge: true });
+      await setDoc(userRef, { email: user.email || "citizen@gov.in", role: "user" }, { merge: true });
     }
     router.push("/user");
   };
@@ -177,7 +179,7 @@ export default function LandingPage() {
           </div>
         ) : role === 'admin' ? (
           <Card className="animate-in slide-in-from-right-12 duration-700 rounded-[3rem] shadow-2xl border-none overflow-hidden">
-            <CardHeader className="bg-slate-900 text-white p-10">
+            <CardHeader className="bg-slate-900 text-white p-10 text-center">
               <Button variant="ghost" className="w-fit -ml-2 mb-6 h-8 px-2 text-[10px] font-black uppercase text-slate-500 hover:text-white" onClick={() => setRole(null)}>
                 <ArrowRight className="rotate-180 mr-2 h-4 w-4" /> Back
               </Button>
@@ -186,7 +188,7 @@ export default function LandingPage() {
             <CardContent className="p-10 space-y-6 bg-white">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Gov Credentials</Label>
-                <Input placeholder="admin@madurai.gov" value={email} onChange={(e) => setEmail(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
+                <Input placeholder="admin@gov.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Master Key</Label>
@@ -199,7 +201,7 @@ export default function LandingPage() {
           </Card>
         ) : role === 'worker' ? (
           <Card className="animate-in slide-in-from-right-12 duration-700 rounded-[3rem] shadow-2xl border-none overflow-hidden">
-            <CardHeader className="bg-orange-600 text-white p-10">
+            <CardHeader className="bg-orange-600 text-white p-10 text-center">
               <Button variant="ghost" className="w-fit -ml-2 mb-6 h-8 px-2 text-[10px] font-black uppercase text-orange-200 hover:text-white" onClick={() => setRole(null)}>
                 <ArrowRight className="rotate-180 mr-2 h-4 w-4" /> Back
               </Button>
@@ -237,8 +239,8 @@ export default function LandingPage() {
 
       <footer className="mt-auto py-12 flex flex-col items-center space-y-5">
         <div className="flex items-center gap-6 opacity-40">
-           <Globe className="h-5 w-5" />
-           <Github className="h-5 w-5" />
+           <Globe className="h-5 w-5 hover:text-primary transition-colors cursor-pointer" />
+           <Github className="h-5 w-5 hover:text-primary transition-colors cursor-pointer" />
         </div>
         <div className="text-center space-y-1">
           <p className="text-[9px] text-muted-foreground font-black tracking-[0.4em] uppercase">© 2024 Madurai Municipal Corporation</p>
