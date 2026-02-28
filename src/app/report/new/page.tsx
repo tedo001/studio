@@ -1,9 +1,9 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useStorage } from "@/firebase";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { useUser, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { aiCategorySuggestion } from "@/ai/flows/ai-category-suggestion";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function NewReportPage() {
-  const { user, loading: authLoading } = useUser();
+  const { user } = useUser();
   const db = useFirestore();
-  const storage = useStorage();
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,69 +112,51 @@ export default function NewReportPage() {
 
   const handleSubmit = async () => {
     if (!image) {
-      toast({ title: "Evidence Needed", description: "Please upload a photo of the incident.", variant: "destructive" });
+      toast({ title: "Evidence Needed", description: "Please capture a photo.", variant: "destructive" });
       return;
     }
     if (!location) {
-      toast({ title: "No Location", description: "Wait for GPS signal to lock coordinates.", variant: "destructive" });
+      toast({ title: "No Location", description: "Wait for GPS signal.", variant: "destructive" });
       return;
     }
     
     setUploading(true);
     
-    try {
-      let downloadUrl = "https://picsum.photos/seed/cleanup-placeholder/600/400";
-      
-      // Real-world storage integration
-      if (storage) {
-        const reportId = `REP-${Date.now()}`;
-        const storageRef = ref(storage, `reports/${reportId}.jpg`);
-        await uploadString(storageRef, image, "data_url");
-        downloadUrl = await getDownloadURL(storageRef);
-      }
+    // In production, we'd upload to Firebase Storage, but for the prototype 
+    // we use the data URI for immediate display across interconnected dashboards.
+    const reportData = {
+      imageUrl: image,
+      aiCategory: category || "Uncategorized Issue",
+      severity: severity,
+      status: "Pending",
+      timestamp: serverTimestamp(),
+      userId: user?.uid || "anonymous",
+      location: location,
+      locationName: locationName || "Madurai Municipal Limit",
+    };
 
-      const reportData = {
-        imageUrl: downloadUrl,
-        aiCategory: category || "Uncategorized Issue",
-        severity: severity,
-        status: "Pending",
-        timestamp: serverTimestamp(),
-        userId: user?.uid || "anonymous",
-        location: location,
-        locationName: locationName || "Madurai Municipal Limit",
-      };
-
-      if (!db) {
-        // Fallback for Demo Mode if Firebase Studio isn't connected yet
-        setTimeout(() => {
-          setSubmitted(true);
-          toast({ title: "Demo Mode Success", description: "Report simulated successfully." });
-          setTimeout(() => router.push("/user"), 2000);
-        }, 1500);
-        return;
-      }
-
-      const reportsCollection = collection(db, "reports");
-      addDoc(reportsCollection, reportData)
-        .then(() => {
-          setSubmitted(true);
-          toast({ title: "Transmission Success", description: "Your report is now live in the Ops feed." });
-          setTimeout(() => router.push("/user"), 2000);
-        })
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: reportsCollection.path,
-            operation: 'create',
-            requestResourceData: reportData,
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-          setUploading(false);
-        });
-
-    } catch (error: any) {
-      toast({ title: "System Error", description: "Failed to transmit report. Try again.", variant: "destructive" });
+    if (!db) {
+      toast({ title: "Database Offline", description: "Firestore is not connected.", variant: "destructive" });
       setUploading(false);
+      return;
     }
+
+    const reportsCollection = collection(db, "reports");
+    addDoc(reportsCollection, reportData)
+      .then(() => {
+        setSubmitted(true);
+        toast({ title: "Transmission Success", description: "Report is live in the Ops feed." });
+        setTimeout(() => router.push("/user"), 2000);
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: reportsCollection.path,
+          operation: 'create',
+          requestResourceData: reportData,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        setUploading(false);
+      });
   };
 
   if (submitted) {
@@ -186,7 +167,7 @@ export default function NewReportPage() {
         </div>
         <div className="space-y-3">
           <h2 className="text-3xl font-black text-primary font-headline tracking-tighter uppercase italic">Case Filed</h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 max-w-[200px] mx-auto">Incident registered at {locationName}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Incident registered at {locationName}</p>
         </div>
         <div className="flex items-center gap-3 px-6 py-3 bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-muted-foreground tracking-widest">
           <Loader2 className="h-4 w-4 animate-spin" /> Redirecting to Feed...
@@ -210,18 +191,6 @@ export default function NewReportPage() {
       </header>
 
       <div className="px-6 flex-1 flex flex-col space-y-8 py-8">
-        {!location && !locLoading && (
-          <Alert variant="destructive" className="rounded-[2rem] border-2 shadow-xl bg-red-50">
-            <AlertTitle className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"><MapPin className="h-4 w-4" /> Hardware Block</AlertTitle>
-            <AlertDescription className="text-[11px] font-bold space-y-3 mt-2">
-              <p>GPS positioning is required for official government filing.</p>
-              <Button size="sm" variant="outline" className="h-10 rounded-xl bg-white text-[10px] font-black uppercase" onClick={getGPS}>
-                <RefreshCw className="h-3.5 w-3.5 mr-2" /> Re-Scan Area
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className="space-y-4">
           <Label className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">1. Capture Evidence</Label>
           <div 
@@ -245,7 +214,7 @@ export default function NewReportPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-black text-slate-800 uppercase italic">Tap to Open Lens</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Capture clear visual proof</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Capture visual proof</p>
                 </div>
               </div>
             )}
@@ -267,27 +236,21 @@ export default function NewReportPage() {
                           {locationName || "Detecting Zone..."}
                        </p>
                     </div>
-                    {location && <MapPreview latitude={location.latitude} longitude={location.longitude} className="h-44 rounded-2xl shadow-xl" />}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">AI Categorization</Label>
-                      <div className="flex items-center">
-                        {aiAnalyzing ? (
-                          <div className="flex items-center space-x-2 text-primary bg-primary/5 px-4 py-2 rounded-xl">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Analyzing Image...</span>
-                          </div>
-                        ) : (
-                          <Badge variant="secondary" className="bg-primary/10 text-primary px-5 py-2 border-none shadow-sm text-[10px] font-black rounded-xl uppercase tracking-wider italic">
-                            {category || "Awaiting Scan"}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 shadow-inner">
-                      <ShieldCheck className="h-6 w-6 text-slate-300" />
+                  <div className="space-y-2">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">AI Category</Label>
+                    <div className="flex items-center">
+                      {aiAnalyzing ? (
+                        <div className="flex items-center space-x-2 text-primary bg-primary/5 px-4 py-2 rounded-xl">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Analyzing...</span>
+                        </div>
+                      ) : (
+                        <Badge variant="secondary" className="bg-primary/10 text-primary px-5 py-2 border-none shadow-sm text-[10px] font-black rounded-xl uppercase tracking-wider italic">
+                          {category || "Scan Complete"}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -313,12 +276,7 @@ export default function NewReportPage() {
               onClick={handleSubmit}
               disabled={uploading || aiAnalyzing || !location}
             >
-              {uploading ? (
-                <div className="flex items-center gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="uppercase italic">Transmitting...</span>
-                </div>
-              ) : "TRANSMIT OFFICIAL REPORT"}
+              {uploading ? "TRANSMITTING..." : "TRANSMIT OFFICIAL REPORT"}
             </Button>
           </div>
         )}

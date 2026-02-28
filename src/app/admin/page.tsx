@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
-import { useFirestore, useCollection } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,20 +29,12 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Memoize queries to prevent unnecessary re-renders and slowness
-  // Removed orderBy temporarily to ensure visibility even if indices are still provisioning
-  const reportsQuery = useMemo(() => {
-    if (!db) return null;
-    return collection(db, "reports");
-  }, [db]);
+  // Use the optimized memoization hook
+  const reportsRef = useMemoFirebase(() => db ? collection(db, "reports") : null, [db]);
+  const usersRef = useMemoFirebase(() => db ? collection(db, "users") : null, [db]);
 
-  const usersQuery = useMemo(() => {
-    if (!db) return null;
-    return collection(db, "users");
-  }, [db]);
-
-  const { data: reports, loading: reportsLoading } = useCollection(reportsQuery);
-  const { data: users, loading: usersLoading } = useCollection(usersQuery);
+  const { data: reports, isLoading: reportsLoading } = useCollection(reportsRef);
+  const { data: users, isLoading: usersLoading } = useCollection(usersRef);
 
   const handleAddWorker = async () => {
     if (!workerEmail || !workerId || !workerPass) {
@@ -50,7 +43,7 @@ export default function AdminDashboard() {
     }
 
     if (!db) {
-      toast({ title: "Database Offline", description: "Firestore is not connected. Please click 'Connect Firebase' in the Studio sidebar.", variant: "destructive" });
+      toast({ title: "Database Offline", description: "Firestore is not connected.", variant: "destructive" });
       return;
     }
 
@@ -104,16 +97,6 @@ export default function AdminDashboard() {
       </header>
 
       <main className="p-6 space-y-8 max-w-lg mx-auto w-full">
-        {!db && (
-          <Alert variant="destructive" className="rounded-[2rem] border-2 bg-red-50 mb-4 animate-in fade-in zoom-in duration-500">
-            <WifiOff className="h-5 w-5" />
-            <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Connection Blocked</AlertTitle>
-            <AlertDescription className="text-[11px] font-bold">
-              Firebase Firestore is not connected. Use the Studio sidebar to provision your project.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-3 h-20 bg-white border-4 border-slate-100 rounded-[3rem] p-2 shadow-xl mb-8">
             <TabsTrigger value="overview" className="rounded-[2.5rem] text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all italic">Live Ops</TabsTrigger>
@@ -145,22 +128,6 @@ export default function AdminDashboard() {
                   </p>
                 </CardContent>
               </Card>
-            </div>
-            
-            <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] px-4 italic">Operational Map Feed</Label>
-              <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl border-none">
-                <p className="text-sm font-black mb-6 text-slate-700 flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-primary" /> {reports?.[0]?.locationName || "Detecting Zone Activity..."}
-                </p>
-                {reports?.[0]?.location ? (
-                  <MapPreview latitude={reports[0].location.latitude} longitude={reports[0].location.longitude} className="h-80 rounded-[2.5rem] shadow-inner" />
-                ) : (
-                  <div className="h-80 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border-4 border-dashed border-slate-200 text-center p-8">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.5em] italic">Awaiting Global Intel Feed</p>
-                  </div>
-                )}
-              </div>
             </div>
           </TabsContent>
 
@@ -222,11 +189,6 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-8 py-4 animate-in slide-in-from-right-12 duration-500">
-            <div className="relative mb-4">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400" />
-              <Input placeholder="Search Operations Database..." className="pl-16 h-20 rounded-[2.5rem] bg-white border-none shadow-2xl text-lg font-black italic placeholder:font-normal placeholder:not-italic" />
-            </div>
-            
             {reportsLoading ? (
               <div className="flex flex-col items-center py-32 text-muted-foreground">
                 <Loader2 className="h-12 w-12 animate-spin mb-6 text-primary" />
@@ -252,7 +214,7 @@ export default function AdminDashboard() {
                         </div>
                         <p className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-3">
                           <MapPin className="h-4 w-4 text-primary" />
-                          {r.locationName || "Detecting Street Address..."}
+                          {r.locationName || "Location Syncing..."}
                         </p>
                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-50">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
