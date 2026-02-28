@@ -1,147 +1,245 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy, where } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { useUser, useFirestore, useDoc } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, History, Leaf, AlertCircle } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
-interface Report {
-  id: string;
-  imageUrl: string;
-  aiCategory: string;
-  severity: string;
-  timestamp: any;
-  userId: string;
-}
+type Role = 'admin' | 'user' | 'worker' | null;
 
-export default function Home() {
+export default function LandingPage() {
   const { user, loading: authLoading } = useUser();
   const db = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const reportsQuery = useMemo(() => {
-    if (!db || !user) return null;
-    return query(
-      collection(db, "reports"),
-      where("userId", "==", user.uid),
-      orderBy("timestamp", "desc")
-    );
-  }, [db, user]);
+  const [role, setRole] = useState<Role>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const { data: reports, loading: reportsLoading } = useCollection<Report>(reportsQuery);
+  // Fetch user role from Firestore if logged in
+  const userProfileRef = user ? doc(db!, "users", user.uid) : null;
+  const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
-  if (authLoading) {
+  useEffect(() => {
+    if (profile) {
+      if (profile.role === 'admin') router.push("/admin");
+      else if (profile.role === 'worker') router.push("/worker");
+      else if (profile.role === 'user') router.push("/user");
+    }
+  }, [profile, router]);
+
+  const handleAdminLogin = async () => {
+    if (email === "admin@gov.in" && password === "admin@123") {
+      setIsLoggingIn(true);
+      // In a real app, we'd use Firebase Auth password sign-in here.
+      // For this prototype, we'll assign the role to the current anonymous user if they match.
+      if (user && db) {
+        await setDoc(doc(db, "users", user.uid), {
+          email: "admin@gov.in",
+          role: "admin"
+        }, { merge: true });
+        router.push("/admin");
+      }
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Invalid admin credentials.",
+      });
+    }
+  };
+
+  const handleWorkerLogin = async () => {
+    setIsLoggingIn(true);
+    // Workers log in via their assigned ID and Pass (stored in users collection)
+    // For MVP, we'll check if a user with this role exists.
+    // In production, this would be a specialized auth flow.
+    toast({
+      title: "Worker Login",
+      description: "Checking credentials...",
+    });
+    // Simplified for prototype: normally would query Firestore for workerId/Pass
+    setTimeout(() => setIsLoggingIn(false), 1000);
+  };
+
+  const startAsUser = async () => {
+    if (user && db) {
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email || "anonymous@user.com",
+        role: "user"
+      }, { merge: true });
+      router.push("/user");
+    }
+  };
+
+  if (authLoading || profileLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background space-y-4">
-        <Leaf className="h-12 w-12 text-primary animate-bounce" />
-        <p className="text-muted-foreground font-medium">Preparing Madurai CleanUp...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
+        <Leaf className="h-12 w-12 text-primary animate-bounce mb-4" />
+        <p className="text-muted-foreground font-medium">Madurai CleanUp is loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background relative pb-24">
-      {/* Header */}
-      <header className="p-6 pt-10 flex flex-col space-y-2">
-        <div className="flex items-center space-x-2">
-          <Leaf className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight text-primary font-headline">
+    <div className="flex flex-col min-h-screen bg-background p-6">
+      <header className="pt-10 pb-12 flex flex-col items-center text-center space-y-4">
+        <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center">
+          <Leaf className="h-10 w-10 text-primary" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-primary font-headline">
             Madurai CleanUp
           </h1>
+          <p className="text-muted-foreground max-w-xs mx-auto">
+            A cleaner city begins with your report. Select your role to continue.
+          </p>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Keep your city clean. Capture issues, report instantly.
-        </p>
       </header>
 
-      {/* Stats Summary */}
-      <div className="px-6 mb-8">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Your Impact</p>
-              <p className="text-2xl font-bold text-primary">{reports?.length || 0} Reports</p>
-            </div>
-            <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
-              <History className="text-white h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Reports Feed */}
-      <div className="flex-1 px-6 space-y-4 overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <History className="h-5 w-5" /> Recent Reports
-          </h2>
-          <Link href="/reports">
-            <Button variant="link" size="sm" className="text-primary font-bold p-0">View All</Button>
-          </Link>
-        </div>
-
-        {reportsLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-48 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : !reports || reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-white/50 rounded-2xl border border-dashed border-muted-foreground/20">
-            <AlertCircle className="h-12 w-12 text-muted-foreground opacity-30" />
-            <div>
-              <p className="text-lg font-bold text-muted-foreground">No reports yet</p>
-              <p className="text-sm text-muted-foreground px-10">Start by capturing an environmental issue around you.</p>
-            </div>
-          </div>
-        ) : (
-          reports.slice(0, 5).map((report) => (
-            <Card key={report.id} className="overflow-hidden border-none shadow-md hover:shadow-lg transition-shadow">
-              <div className="relative h-48 w-full">
-                <Image 
-                  src={report.imageUrl} 
-                  alt={report.aiCategory} 
-                  fill 
-                  className="object-cover"
-                />
-                <div className="absolute top-3 left-3 flex gap-2">
-                  <Badge className="bg-white/90 text-primary border-none font-bold">
-                    {report.aiCategory}
-                  </Badge>
-                  <Badge variant={report.severity === 'High' ? 'destructive' : 'secondary'} className="font-bold">
-                    {report.severity}
-                  </Badge>
+      <div className="grid gap-4 flex-1">
+        {!role ? (
+          <>
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors group"
+              onClick={() => setRole('user')}
+            >
+              <CardContent className="p-6 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                    <User className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Citizen User</h3>
+                    <p className="text-sm text-muted-foreground">Report issues & track progress</p>
+                  </div>
                 </div>
-              </div>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  Madurai, India
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {report.timestamp?.toDate ? new Date(report.timestamp.toDate()).toLocaleDateString() : 'Just now'}
-                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
               </CardContent>
             </Card>
-          ))
+
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors group"
+              onClick={() => setRole('worker')}
+            >
+              <CardContent className="p-6 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
+                    <HardHat className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Cleanup Worker</h3>
+                    <p className="text-sm text-muted-foreground">Assigned tasks & field reports</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors group"
+              onClick={() => setRole('admin')}
+            >
+              <CardContent className="p-6 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Authority Admin</h3>
+                    <p className="text-sm text-muted-foreground">Manage workers & operations</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
+              </CardContent>
+            </Card>
+          </>
+        ) : role === 'admin' ? (
+          <Card className="animate-in zoom-in-95 duration-300">
+            <CardHeader>
+              <Button variant="ghost" className="w-fit -ml-2 mb-2" onClick={() => setRole(null)}>
+                Back
+              </Button>
+              <CardTitle>Admin Access</CardTitle>
+              <CardDescription>Enter government credentials</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Government Email</Label>
+                <Input 
+                  id="email" 
+                  placeholder="admin@gov.in" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                />
+              </div>
+              <Button className="w-full h-12 font-bold" onClick={handleAdminLogin} disabled={isLoggingIn}>
+                {isLoggingIn ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Verify Identity"}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : role === 'worker' ? (
+          <Card className="animate-in zoom-in-95 duration-300">
+            <CardHeader>
+              <Button variant="ghost" className="w-fit -ml-2 mb-2" onClick={() => setRole(null)}>
+                Back
+              </Button>
+              <CardTitle>Worker Entry</CardTitle>
+              <CardDescription>Log in with your assigned ID</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="workerId">Worker ID</Label>
+                <Input id="workerId" placeholder="MDU-W-001" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="workerPass">Assigned PIN</Label>
+                <Input id="workerPass" type="password" placeholder="••••" />
+              </div>
+              <Button className="w-full h-12 font-bold" onClick={handleWorkerLogin} disabled={isLoggingIn}>
+                Login to Field Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="p-8 bg-blue-50 rounded-2xl text-center space-y-4">
+              <User className="h-12 w-12 text-blue-600 mx-auto" />
+              <h2 className="text-xl font-bold">Welcome, Citizen</h2>
+              <p className="text-sm text-blue-600">You can report littering, illegal dumping, and more directly to the city council.</p>
+            </div>
+            <Button className="w-full h-14 text-lg font-bold shadow-xl" onClick={startAsUser}>
+              Continue as Citizen
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setRole(null)}>
+              Change Role
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-8 left-0 right-0 px-6 max-w-lg mx-auto pointer-events-none">
-        <div className="flex justify-center pointer-events-auto">
-          <Link href="/report/new">
-            <Button size="lg" className="rounded-full h-16 w-16 shadow-2xl bg-primary hover:bg-primary/90">
-              <Plus className="h-8 w-8" />
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <footer className="mt-12 py-6 border-t text-center">
+        <p className="text-xs text-muted-foreground">© 2024 Madurai Municipal Corporation</p>
+      </footer>
     </div>
   );
 }

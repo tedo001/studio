@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Report": {
@@ -18,6 +19,11 @@
           "enum": ["Low", "Medium", "High"],
           "description": "The severity level of the issue."
         },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "In Progress", "Resolved"],
+          "description": "Current status of the report."
+        },
         "timestamp": {
           "type": "object",
           "description": "Server timestamp of when the report was created."
@@ -25,18 +31,45 @@
         "userId": {
           "type": "string",
           "description": "UID of the user who submitted the report."
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          }
+        },
+        "assignedTo": {
+          "type": "string",
+          "description": "UID of the worker assigned to this report."
         }
       },
-      "required": ["imageUrl", "aiCategory", "severity", "timestamp", "userId"]
+      "required": ["imageUrl", "aiCategory", "severity", "status", "timestamp", "userId"]
+    },
+    "AppUser": {
+      "title": "Application User",
+      "description": "User profile with role management.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user", "worker"] },
+        "workerId": { "type": "string", "description": "Unique ID assigned by admin for workers." },
+        "workerPass": { "type": "string", "description": "Password assigned by admin for workers." }
+      },
+      "required": ["email", "role"]
     }
   },
   "auth": {
-    "providers": ["anonymous"]
+    "providers": ["anonymous", "password"]
   },
   "firestore": {
     "/reports/{reportId}": {
       "schema": "Report",
       "description": "Collection of environmental issue reports."
+    },
+    "/users/{userId}": {
+      "schema": "AppUser",
+      "description": "Collection of user profiles and roles."
     }
   }
 }

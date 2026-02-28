@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore } from "@/firebase";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
@@ -8,14 +9,13 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { aiCategorySuggestion } from "@/ai/flows/ai-category-suggestion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Camera, Loader2, CheckCircle, AlertCircle, X } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, CheckCircle, AlertCircle, X, MapPin } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function NewReportPage() {
   const { user } = useUser();
@@ -30,6 +30,34 @@ export default function NewReportPage() {
   const [category, setCategory] = useState("");
   const [severity, setSeverity] = useState("Medium");
   const [submitted, setSubmitted] = useState(false);
+  
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locLoading, setLocLoading] = useState(false);
+
+  useEffect(() => {
+    // Enable GPS system
+    const getGPS = () => {
+      setLocLoading(true);
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            setLocLoading(false);
+          },
+          (err) => {
+            console.error(err);
+            toast({
+              title: "Location Denied",
+              description: "Please enable GPS to provide accurate report location.",
+              variant: "destructive"
+            });
+            setLocLoading(false);
+          }
+        );
+      }
+    };
+    getGPS();
+  }, [toast]);
 
   const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,7 +83,7 @@ export default function NewReportPage() {
         description: "Couldn't suggest a category automatically.",
         variant: "destructive",
       });
-      setCategory("Litter"); // Fallback
+      setCategory("Litter"); 
     } finally {
       setAiAnalyzing(false);
     }
@@ -77,28 +105,22 @@ export default function NewReportPage() {
         imageUrl: downloadUrl,
         aiCategory: category,
         severity: severity,
+        status: "Pending",
         timestamp: serverTimestamp(),
         userId: user.uid,
+        location: location || null,
       };
 
-      addDoc(collection(db, "reports"), reportData)
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: 'reports',
-            operation: 'create',
-            requestResourceData: reportData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        });
+      await addDoc(collection(db, "reports"), reportData);
 
       setSubmitted(true);
       toast({
-        title: "Success",
-        description: "Thank you for reporting this issue!",
+        title: "Report Filed",
+        description: "Your report has been sent to the city council.",
       });
       
       setTimeout(() => {
-        router.push("/");
+        router.push("/user");
       }, 2000);
 
     } catch (error) {
@@ -120,7 +142,7 @@ export default function NewReportPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-primary font-headline">Report Submitted!</h2>
-          <p className="text-muted-foreground">Madurai is one step closer to being cleaner thanks to you.</p>
+          <p className="text-muted-foreground">Location and image recorded. Authorities have been notified.</p>
         </div>
         <Loader2 className="h-6 w-6 text-primary animate-spin" />
       </div>
@@ -129,26 +151,34 @@ export default function NewReportPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
       <header className="p-4 flex items-center space-x-4">
-        <Link href="/">
+        <Link href="/user">
           <Button variant="ghost" size="icon" className="rounded-full">
             <ArrowLeft className="h-6 w-6" />
           </Button>
         </Link>
-        <h1 className="text-xl font-bold font-headline">Report Issue</h1>
+        <h1 className="text-xl font-bold font-headline">New Report</h1>
       </header>
 
       <div className="px-6 flex-1 flex flex-col space-y-6 pb-10">
+        {!location && !locLoading && (
+          <Alert variant="destructive">
+            <AlertTitle className="flex items-center gap-2"><MapPin className="h-4 w-4" /> GPS Disabled</AlertTitle>
+            <AlertDescription>
+              We couldn't get your location. Please enable GPS for better reporting.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-4">
-          <Label className="text-lg font-bold">Capture the issue</Label>
+          <Label className="text-lg font-bold">1. Take a Photo</Label>
           <div 
             onClick={() => !image && fileInputRef.current?.click()}
-            className={`relative h-64 w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${image ? 'border-primary' : 'border-muted-foreground/30 hover:border-primary/50'}`}
+            className={`relative h-64 w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${image ? 'border-primary' : 'border-muted-foreground/30'}`}
           >
             {image ? (
               <>
-                <Image src={image} alt="Captured issue" fill className="object-cover" />
+                <Image src={image} alt="issue" fill className="object-cover" />
                 <button 
                   onClick={(e) => { e.stopPropagation(); setImage(null); }}
                   className="absolute top-4 right-4 h-8 w-8 bg-black/50 text-white rounded-full flex items-center justify-center"
@@ -159,52 +189,53 @@ export default function NewReportPage() {
             ) : (
               <div className="flex flex-col items-center space-y-2">
                 <Camera className="h-12 w-12 text-muted-foreground" />
-                <p className="text-sm font-medium text-muted-foreground">Click to take a photo</p>
+                <p className="text-sm font-medium text-muted-foreground">Click to Open Camera</p>
               </div>
             )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              capture="environment" 
-              ref={fileInputRef} 
-              className="hidden" 
-              onChange={handleCapture}
-            />
+            <input type="file" accept="image/*" capture="environment" ref={fileInputRef} className="hidden" onChange={handleCapture} />
           </div>
         </div>
 
         {image && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-4">
-              <Label className="text-lg font-bold">Details</Label>
-              <Card className="bg-secondary/10 border-none shadow-sm">
+              <Label className="text-lg font-bold">2. Verification</Label>
+              <Card className="bg-secondary/10 border-none">
                 <CardContent className="p-4 space-y-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground uppercase font-bold">AI Suggested Category</Label>
+                    <Label className="text-xs text-muted-foreground uppercase font-bold">Location Status</Label>
+                    <div className="flex items-center text-sm font-medium gap-2">
+                      {locLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className={`h-4 w-4 ${location ? 'text-green-600' : 'text-red-600'}`} />}
+                      {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "Position not fixed"}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase font-bold">Issue Category</Label>
                     <div className="flex items-center space-x-2">
                       {aiAnalyzing ? (
                         <div className="flex items-center space-x-2 text-primary">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm font-medium">Gemini is analyzing...</span>
+                          <span className="text-sm font-medium">Gemini scanning...</span>
                         </div>
                       ) : (
-                        <Badge variant="secondary" className="bg-white text-primary text-md px-3 py-1">
-                          {category || "Awaiting scan..."}
+                        <Badge variant="secondary" className="bg-white text-primary px-3 py-1">
+                          {category || "Scan incomplete"}
                         </Badge>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="severity" className="text-xs text-muted-foreground uppercase font-bold">Severity Level</Label>
+                    <Label className="text-xs text-muted-foreground uppercase font-bold">Urgency</Label>
                     <Select value={severity} onValueChange={setSeverity}>
-                      <SelectTrigger className="bg-white border-none shadow-sm">
-                        <SelectValue placeholder="Select severity" />
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Low">Low - Minor issue</SelectItem>
-                        <SelectItem value="Medium">Medium - Needs attention</SelectItem>
-                        <SelectItem value="High">High - Urgent cleanup</SelectItem>
+                        <SelectItem value="Low">Low - Cosmetic issue</SelectItem>
+                        <SelectItem value="Medium">Medium - Health hazard</SelectItem>
+                        <SelectItem value="High">High - Emergency removal</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -213,28 +244,12 @@ export default function NewReportPage() {
             </div>
 
             <Button 
-              className="w-full h-14 text-lg font-bold shadow-xl" 
+              className="w-full h-14 text-lg font-bold" 
               onClick={handleSubmit}
               disabled={uploading || aiAnalyzing}
             >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Reporting...
-                </>
-              ) : (
-                "Submit Report"
-              )}
+              {uploading ? "Uploading..." : "Submit to City Council"}
             </Button>
-          </div>
-        )}
-
-        {!image && (
-          <div className="flex items-center p-4 bg-accent/30 rounded-xl space-x-3 text-accent-foreground border border-accent/50">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p className="text-sm italic">
-              AI will automatically suggest a category once you take a photo.
-            </p>
           </div>
         )}
       </div>
