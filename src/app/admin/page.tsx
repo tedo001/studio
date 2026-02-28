@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,9 +28,16 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Queries only activate once authentication is established
-  const reportsRef = useMemoFirebase(() => (db && user && !isUserLoading) ? collection(db, "reports") : null, [db, user, isUserLoading]);
-  const usersRef = useMemoFirebase(() => (db && user && !isUserLoading) ? collection(db, "users") : null, [db, user, isUserLoading]);
+  // Unified queries that wait for auth stability
+  const reportsRef = useMemoFirebase(() => {
+    if (!db || isUserLoading || !user) return null;
+    return query(collection(db, "reports"), orderBy("timestamp", "desc"));
+  }, [db, isUserLoading, user?.uid]);
+
+  const usersRef = useMemoFirebase(() => {
+    if (!db || isUserLoading || !user) return null;
+    return collection(db, "users");
+  }, [db, isUserLoading, user?.uid]);
 
   const { data: reports, isLoading: reportsLoading } = useCollection(reportsRef);
   const { data: users, isLoading: usersLoading } = useCollection(usersRef);
