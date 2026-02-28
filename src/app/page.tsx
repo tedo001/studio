@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useAuth } from "@/firebase";
 import { doc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,14 +29,6 @@ export default function LandingPage() {
   const [workerPassInput, setWorkerPassInput] = useState("");
   
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // Redirect if user is already a citizen with a profile
-  useEffect(() => {
-    if (user && !user.isAnonymous && !isLoggingIn) {
-      // If we're already logged in with a real account, we might want to auto-redirect
-      // but for this multi-role app, we let the user choose their dashboard.
-    }
-  }, [user, isLoggingIn]);
 
   const handleAdminLogin = async () => {
     const cleanEmail = email.toLowerCase().trim();
@@ -80,7 +72,6 @@ export default function LandingPage() {
     
     setIsLoggingIn(true);
     const provider = new GoogleAuthProvider();
-    // Optimization: Ask for specific account choice to make it feel more "official"
     provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
@@ -102,7 +93,7 @@ export default function LandingPage() {
       toast({
         variant: "destructive",
         title: "Sign-In Failed",
-        description: error.message || "Failed to authenticate with Google. Ensure popups are enabled.",
+        description: "Failed to authenticate with Google. Ensure popups are enabled.",
       });
       setIsLoggingIn(false);
     }

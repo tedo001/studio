@@ -78,13 +78,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (!firebaseUser) {
-          // If no user is signed in, we establish an anonymous session.
-          // This ensures that request.auth is NOT null for our security rules.
+          // Fallback to anonymous session to ensure request.auth is never null in Firestore.
           try {
             await signInAnonymously(auth);
-            // signInAnonymously will trigger this callback again with the new user.
           } catch (e: any) {
-            console.warn("Anonymous sign-in fallback failed:", e.message);
+            console.warn("Auth: Anonymous fallback suppressed.", e.message);
             setUserAuthState({ user: null, isUserLoading: false, userError: e });
           }
         } else {
@@ -92,7 +90,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         }
       },
       (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
+        console.error("Auth: State change error:", error);
         setUserAuthState({ user: null, isUserLoading: false, userError: error });
       }
     );

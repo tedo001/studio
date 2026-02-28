@@ -1,7 +1,6 @@
 {
   "entities": {
     "Report": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Report",
       "type": "object",
       "description": "Represents an environmental issue report including image, location name, and status.",
@@ -44,7 +43,7 @@
   "firestore": {
     "/reports/{reportId}": {
       "schema": { "$ref": "#/backend/entities/Report" },
-      "description": "Global collection of environmental reports."
+      "description": "Global collection of environmental reports accessible by all roles."
     },
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/User" },
