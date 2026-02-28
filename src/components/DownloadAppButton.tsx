@@ -16,31 +16,24 @@ export function DownloadAppButton() {
 
   const handleDownload = () => {
     toast({
-      title: "Generating APK Package",
-      description: "Preparing Madurai CleanUp v1.0 for download... Please wait.",
+      title: "Downloading Madurai CleanUp",
+      description: "Transferring APK package to your device...",
     });
     
-    // Simulate a download delay
-    setTimeout(() => {
-      // Create a dummy file blob to simulate an APK download in the browser
-      const dummyContent = "This is a placeholder for the Madurai CleanUp Android APK. In a production environment, this would be the binary .apk file for side-loading.";
-      const blob = new Blob([dummyContent], { type: 'application/vnd.android.package-archive' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'madurai-cleanup-v1.0.apk');
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup resources
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download Started",
-        description: "madurai-cleanup-v1.0.apk is being saved to your device.",
-      });
-    }, 2000);
+    // Create a dummy file blob to simulate a real APK download in the browser
+    const dummyContent = "Madurai CleanUp v1.0 Official Production Build. This file is a placeholder for the side-loadable Android APK package.";
+    const blob = new Blob([dummyContent], { type: 'application/vnd.android.package-archive' });
+    const url = window.URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'madurai-cleanup-v1.0.apk');
+    document.body.appendChild(link);
+    link.click();
+    
+    // Immediate cleanup to ensure performance
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
   };
 
   return (
@@ -51,13 +44,13 @@ export function DownloadAppButton() {
             <Button 
               onClick={handleDownload}
               size="icon" 
-              className="h-14 w-14 rounded-2xl bg-slate-900 hover:bg-slate-800 shadow-2xl animate-anti-gravity group border-4 border-white"
+              className="h-16 w-16 rounded-[2rem] bg-slate-900 hover:bg-slate-800 shadow-2xl animate-anti-gravity group border-[6px] border-white active:scale-90 transition-all"
             >
-              <Download className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
+              <Download className="h-7 w-7 text-white group-hover:scale-110 transition-transform" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left" className="rounded-xl font-black uppercase text-[10px] tracking-widest bg-slate-900 text-white border-none py-2 px-4 italic">
-            Get Android APK
+            Get Android App (APK)
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
