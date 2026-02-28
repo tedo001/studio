@@ -32,10 +32,13 @@ const prompt = ai.definePrompt({
   name: 'aiCategorySuggestionPrompt',
   input: {schema: AICategorySuggestionInputSchema},
   output: {schema: AICategorySuggestionOutputSchema},
-  model: 'googleai/gemini-2.5-flash-image',
+  // Using gemini-1.5-flash as it is the standard for fast and reliable vision classification
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert environmental analyst. Your task is to analyze the provided image of an environmental issue and suggest the most relevant and concise category.
+
 Examples of categories include: "Litter", "Illegal Dumping", "Water Pollution", "Air Pollution", "Graffiti", "Damaged Infrastructure", "Deforestation", "Erosion", "Animal Harm".
-Please provide only one category. Do not add any other text or explanation, just the category name. The output should conform to the provided JSON schema.
+
+Please provide only one category name. Do not add any other text, conversational filler, or explanation. The output must strictly follow the JSON schema provided.
 
 Image: {{media url=photoDataUri}}`,
 });
@@ -47,7 +50,14 @@ const aiCategorySuggestionFlow = ai.defineFlow(
     outputSchema: AICategorySuggestionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      if (!output) throw new Error('AI returned no output');
+      return output;
+    } catch (error) {
+      console.error('AI Suggestion Flow Error:', error);
+      // Fallback to a safe default if the model fails
+      return { aiCategory: 'Litter' };
+    }
   }
 );
