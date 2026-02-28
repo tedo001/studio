@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, RefreshCcw } from "lucide-react";
+import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, RefreshCcw, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type Role = 'admin' | 'user' | 'worker' | null;
 
@@ -42,7 +44,7 @@ export default function LandingPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setForceShowUI(true);
-    }, 3500);
+    }, 2500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -51,21 +53,18 @@ export default function LandingPage() {
     
     setIsLoggingIn(true);
     if (email === "admin@gov.in" && password === "admin@123") {
+      // If Firebase is connected, save the role
       if (user && db) {
         try {
           await setDoc(doc(db, "users", user.uid), {
             email: "admin@gov.in",
             role: "admin"
           }, { merge: true });
-          router.push("/admin");
         } catch (e) {
-          toast({ variant: "destructive", title: "Update Failed", description: "Could not set admin role." });
-          setIsLoggingIn(false);
+          console.warn("Could not save admin role to Firestore, proceeding anyway.");
         }
-      } else {
-        toast({ variant: "destructive", title: "Error", description: "Firebase project not connected." });
-        setIsLoggingIn(false);
       }
+      router.push("/admin");
     } else {
       toast({
         variant: "destructive",
@@ -78,14 +77,11 @@ export default function LandingPage() {
 
   const handleWorkerLogin = async () => {
     setIsLoggingIn(true);
-    toast({
-      title: "Worker Login",
-      description: "Checking field credentials...",
-    });
+    // In a real app, we'd verify the worker ID/Pass against Firestore
+    // For this prototype, we'll allow entry to show the UI
     setTimeout(() => {
-      setIsLoggingIn(false);
-      toast({ variant: "destructive", title: "Login Failed", description: "Please use assigned credentials." });
-    }, 1000);
+      router.push("/worker");
+    }, 800);
   };
 
   const startAsUser = async () => {
@@ -96,14 +92,14 @@ export default function LandingPage() {
           email: user.email || "citizen@user.com",
           role: "user"
         }, { merge: true });
-        router.push("/user");
       } catch (e) {
-        router.push("/user");
+        console.warn("Could not save user role, proceeding to dashboard.");
       }
-    } else {
-      router.push("/user");
     }
+    router.push("/user");
   };
+
+  const isFirebaseDisconnected = !db;
 
   if ((authLoading || (profileLoading && user)) && !forceShowUI) {
     return (
@@ -113,17 +109,8 @@ export default function LandingPage() {
           <Loader2 className="absolute -bottom-2 -right-2 h-6 w-6 text-primary animate-spin" />
         </div>
         <p className="text-muted-foreground font-medium mb-8 text-center animate-pulse">
-          Starting Madurai CleanUp...
+          Initializing Madurai CleanUp...
         </p>
-        <div className="space-y-4 w-full max-w-xs">
-          <Button 
-            variant="outline" 
-            className="w-full rounded-xl" 
-            onClick={() => setForceShowUI(true)}
-          >
-            <RefreshCcw className="mr-2 h-4 w-4" /> Continue Manually
-          </Button>
-        </div>
       </div>
     );
   }
@@ -139,12 +126,22 @@ export default function LandingPage() {
             Madurai CleanUp
           </h1>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Reporting issues for a better tomorrow. Select your role.
+            Select your role to continue.
           </p>
         </div>
       </header>
 
       <div className="grid gap-4 flex-1">
+        {isFirebaseDisconnected && (
+          <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-800 mb-4">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-xs font-bold uppercase">Demo Mode</AlertTitle>
+            <AlertDescription className="text-[11px]">
+              Firebase project not yet connected. Using local navigation for preview.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {!role ? (
           <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
             <Card 
@@ -158,7 +155,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">Citizen User</h3>
-                    <p className="text-sm text-muted-foreground">Report issues & tracking</p>
+                    <p className="text-sm text-muted-foreground">Report issues & track progress</p>
                   </div>
                 </div>
                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />

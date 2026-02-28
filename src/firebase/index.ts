@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -14,7 +15,13 @@ import { useUser as useUserImpl } from './auth/use-user';
  */
 export function initializeFirebase() {
   try {
-    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined' || firebaseConfig.apiKey.length < 10) {
+    const isConfigValid = 
+      firebaseConfig.apiKey && 
+      firebaseConfig.apiKey !== 'undefined' && 
+      firebaseConfig.apiKey.length > 10;
+
+    if (!isConfigValid) {
+      console.warn("Firebase configuration is incomplete. App will run in Disconnected/Demo mode.");
       return { app: undefined, firestore: undefined, auth: undefined, storage: undefined };
     }
 
@@ -27,10 +34,10 @@ export function initializeFirebase() {
   } catch (error) {
     console.error("Firebase initialization failed:", error);
     return { 
-      app: undefined as any, 
-      firestore: undefined as any, 
-      auth: undefined as any,
-      storage: undefined as any
+      app: undefined, 
+      firestore: undefined, 
+      auth: undefined,
+      storage: undefined
     };
   }
 }
@@ -52,6 +59,6 @@ export function useUser() {
  * Hook to access the Firebase Storage instance.
  */
 export const useStorage = () => {
-  const { app } = initializeFirebase();
-  return app ? getStorage(app) : undefined;
+  const { storage } = initializeFirebase();
+  return storage;
 };
