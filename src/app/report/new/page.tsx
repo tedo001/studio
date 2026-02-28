@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 export default function NewReportPage() {
   const { user } = useUser();
@@ -54,6 +55,8 @@ export default function NewReportPage() {
             setLocLoading(false);
           }
         );
+      } else {
+        setLocLoading(false);
       }
     };
     getGPS();
@@ -103,7 +106,7 @@ export default function NewReportPage() {
 
       const reportData = {
         imageUrl: downloadUrl,
-        aiCategory: category,
+        aiCategory: category || "Uncategorized",
         severity: severity,
         status: "Pending",
         timestamp: serverTimestamp(),
@@ -151,7 +154,7 @@ export default function NewReportPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="p-4 flex items-center space-x-4">
+      <header className="p-4 flex items-center space-x-4 border-b">
         <Link href="/user">
           <Button variant="ghost" size="icon" className="rounded-full">
             <ArrowLeft className="h-6 w-6" />
@@ -160,7 +163,7 @@ export default function NewReportPage() {
         <h1 className="text-xl font-bold font-headline">New Report</h1>
       </header>
 
-      <div className="px-6 flex-1 flex flex-col space-y-6 pb-10">
+      <div className="px-6 flex-1 flex flex-col space-y-6 py-6 pb-10">
         {!location && !locLoading && (
           <Alert variant="destructive">
             <AlertTitle className="flex items-center gap-2"><MapPin className="h-4 w-4" /> GPS Disabled</AlertTitle>
@@ -181,7 +184,7 @@ export default function NewReportPage() {
                 <Image src={image} alt="issue" fill className="object-cover" />
                 <button 
                   onClick={(e) => { e.stopPropagation(); setImage(null); }}
-                  className="absolute top-4 right-4 h-8 w-8 bg-black/50 text-white rounded-full flex items-center justify-center"
+                  className="absolute top-4 right-4 h-8 w-8 bg-black/50 text-white rounded-full flex items-center justify-center z-10"
                 >
                   <X className="h-5 w-5" />
                 </button>
