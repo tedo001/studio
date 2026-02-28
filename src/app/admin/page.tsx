@@ -29,8 +29,8 @@ export default function AdminDashboard() {
   const [isAdding, setIsAdding] = useState(false);
 
   // Queries only activate once authentication is established
-  const reportsRef = useMemoFirebase(() => (db && user) ? collection(db, "reports") : null, [db, user]);
-  const usersRef = useMemoFirebase(() => (db && user) ? collection(db, "users") : null, [db, user]);
+  const reportsRef = useMemoFirebase(() => (db && user && !isUserLoading) ? collection(db, "reports") : null, [db, user, isUserLoading]);
+  const usersRef = useMemoFirebase(() => (db && user && !isUserLoading) ? collection(db, "users") : null, [db, user, isUserLoading]);
 
   const { data: reports, isLoading: reportsLoading } = useCollection(reportsRef);
   const { data: users, isLoading: usersLoading } = useCollection(usersRef);
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     }
 
     if (!db || !user) {
-      toast({ title: "Auth Required", description: "Initializing secure session...", variant: "destructive" });
+      toast({ title: "Auth Required", description: "Waiting for secure session...", variant: "destructive" });
       return;
     }
 
@@ -56,13 +56,12 @@ export default function AdminDashboard() {
       enrolledAt: serverTimestamp()
     };
 
-    // We don't await addDoc to maintain UI responsiveness
     addDoc(usersCollection, data)
       .then(() => {
         setWorkerId("");
         setWorkerPass("");
         setWorkerEmail("");
-        toast({ title: "Personnel Enrolled", description: `Staff ID ${data.workerId} is now live in the system.` });
+        toast({ title: "Personnel Enrolled", description: `Staff ID ${data.workerId} is now live.` });
       })
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -81,7 +80,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Admin Auth...</p>
+        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Anti-Gravity Credentials...</p>
       </div>
     );
   }
@@ -95,7 +94,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col text-left">
             <h1 className="text-2xl font-black font-headline tracking-tighter uppercase italic leading-none">Operations Command</h1>
-            <span className="text-[9px] font-black uppercase text-slate-500 tracking-[0.5em] italic">Google Anti-Gravity Framework</span>
+            <span className="text-[9px] font-black uppercase text-slate-500 tracking-[0.5em] italic">Gov Infrastructure Network</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -113,25 +112,25 @@ export default function AdminDashboard() {
             <TabsTrigger value="reports" className="rounded-[2.5rem] text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all italic">Incident Log</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-8 py-4 animate-in fade-in duration-700">
+          <TabsContent value="overview" className="space-y-8 py-4">
             <div className="grid grid-cols-2 gap-6">
               <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden group">
-                <CardHeader className="pb-2 bg-primary/5 group-hover:bg-primary/10 transition-colors p-8">
+                <CardHeader className="pb-2 bg-primary/5 group-hover:bg-primary/10 transition-colors p-8 text-left">
                   <CardTitle className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2 italic">
                     <TrendingUp className="h-4 w-4" /> Global Activity
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-8 p-8">
+                <CardContent className="pt-8 p-8 text-left">
                   <p className="text-6xl font-black text-primary italic tracking-tighter">{reports?.length || 0}</p>
                 </CardContent>
               </Card>
               <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden group">
-                <CardHeader className="pb-2 bg-blue-50 group-hover:bg-blue-100 transition-colors p-8">
+                <CardHeader className="pb-2 bg-blue-50 group-hover:bg-blue-100 transition-colors p-8 text-left">
                   <CardTitle className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-2 italic">
                     <HardHat className="h-4 w-4" /> Field Staff
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-8 p-8">
+                <CardContent className="pt-8 p-8 text-left">
                   <p className="text-6xl font-black text-blue-600 italic tracking-tighter">
                     {users?.filter((u: any) => u.role === 'worker').length || 0}
                   </p>
@@ -142,22 +141,22 @@ export default function AdminDashboard() {
 
           <TabsContent value="workers" className="space-y-10 py-4 animate-in slide-in-from-right-12 duration-500">
             <Card className="border-none shadow-2xl rounded-[3.5rem] overflow-hidden bg-white">
-              <CardHeader className="bg-slate-900 text-white p-10">
+              <CardHeader className="bg-slate-900 text-white p-10 text-left">
                 <CardTitle className="text-2xl font-black flex items-center gap-4 uppercase italic">
                   <UserPlus className="h-8 w-8 text-primary" /> Personnel Enrollment
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
-                <div className="space-y-3">
+                <div className="space-y-3 text-left">
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Official Staff Email</Label>
                   <Input value={workerEmail} onChange={e => setWorkerEmail(e.target.value)} placeholder="sam@gmail.com" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
+                  <div className="space-y-3 text-left">
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Staff ID</Label>
                     <Input value={workerId} onChange={e => setWorkerId(e.target.value)} placeholder="w122" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-3 text-left">
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Secure PIN</Label>
                     <Input value={workerPass} type="password" onChange={e => setWorkerPass(e.target.value)} placeholder="•••" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
                   </div>
@@ -169,7 +168,7 @@ export default function AdminDashboard() {
             </Card>
 
             <div className="space-y-5">
-              <h3 className="font-black text-[10px] text-slate-400 px-4 uppercase tracking-[0.4em] italic">Authorized Field Roster</h3>
+              <h3 className="font-black text-[10px] text-slate-400 px-4 uppercase tracking-[0.4em] italic text-left">Authorized Field Roster</h3>
               {usersLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>
               ) : users?.filter((u: any) => u.role === 'worker').length === 0 ? (
@@ -227,7 +226,6 @@ export default function AdminDashboard() {
                         </p>
                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-50">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
-                          <Button variant="link" size="sm" className="h-auto p-0 text-[11px] font-black text-primary hover:no-underline uppercase italic tracking-tighter">Secure Intel</Button>
                         </div>
                       </div>
                     </div>

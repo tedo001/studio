@@ -33,7 +33,8 @@
         "workerId": { "type": "string" },
         "workerPass": { "type": "string" },
         "displayName": { "type": "string" },
-        "photoURL": { "type": "string" }
+        "photoURL": { "type": "string" },
+        "enrolledAt": { "type": "string", "format": "date-time" }
       }
     }
   },
