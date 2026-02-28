@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -65,9 +66,11 @@ export default function UserDashboard() {
           </Avatar>
           <div className="flex flex-col">
             <h1 className="text-xl font-black tracking-tight text-slate-900 font-headline uppercase italic leading-none">
-              {user?.displayName?.split(' ')[0] || "Citizen"}&apos;s Feed
+              {user?.displayName?.split(' ')[0] || "Guest"}&apos;s Feed
             </h1>
-            <span className="text-[9px] font-black uppercase text-primary tracking-widest">Verified Citizen</span>
+            <span className="text-[9px] font-black uppercase text-primary tracking-widest">
+              {user?.isAnonymous ? "Guest Citizen" : "Verified Citizen"}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -97,7 +100,7 @@ export default function UserDashboard() {
           </div>
         ) : !reports || reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-8 bg-slate-50/50 rounded-[4rem] border-4 border-dashed border-slate-100">
-            <div className="h-24 w-24 bg-white rounded-[2rem] flex items-center justify-center shadow-inner animate-anti-gravity">
+            <div className="h-24 w-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-inner animate-anti-gravity">
               <Leaf className="h-12 w-12 text-slate-200" />
             </div>
             <div className="space-y-2">
