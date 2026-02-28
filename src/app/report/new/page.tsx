@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -120,6 +119,14 @@ export default function NewReportPage() {
 
       const reportsCollection = collection(db, "reports");
       addDoc(reportsCollection, reportData)
+        .then(() => {
+          setSubmitted(true);
+          toast({
+            title: "Report Filed",
+            description: "Your report has been sent to the city council.",
+          });
+          setTimeout(() => router.push("/user"), 2000);
+        })
         .catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
             path: reportsCollection.path,
@@ -128,17 +135,6 @@ export default function NewReportPage() {
           } satisfies SecurityRuleContext);
           errorEmitter.emit('permission-error', permissionError);
         });
-
-      // Optimistic transition
-      setSubmitted(true);
-      toast({
-        title: "Report Filed",
-        description: "Your report has been sent to the city council.",
-      });
-      
-      setTimeout(() => {
-        router.push("/user");
-      }, 2000);
 
     } catch (error: any) {
       console.error(error);

@@ -6,10 +6,10 @@ import { FirebaseProvider } from './provider';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export const FirebaseClientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { app, firestore, auth } = useMemo(() => initializeFirebase(), []);
+  const { app, firestore, auth, storage } = useMemo(() => initializeFirebase(), []);
 
   return (
-    <FirebaseProvider app={app} firestore={firestore} auth={auth}>
+    <FirebaseProvider app={app} firestore={firestore} auth={auth} storage={storage}>
       <FirebaseErrorListener />
       {children}
     </FirebaseProvider>
