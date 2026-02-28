@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -116,7 +115,6 @@ export default function NewReportPage() {
   };
 
   const handleSubmit = async () => {
-    // Debug checks for robust error handling
     if (!image) {
       toast({ title: "Evidence Required", description: "Please capture a photo of the issue.", variant: "destructive" });
       return;
@@ -126,7 +124,7 @@ export default function NewReportPage() {
       return;
     }
     if (!user || !db || !storage) {
-      toast({ title: "System Syncing", description: "Firebase connection is initializing. Please wait.", variant: "destructive" });
+      toast({ title: "Syncing...", description: "Finalizing cloud connection. Try again in a moment.", variant: "destructive" });
       return;
     }
 

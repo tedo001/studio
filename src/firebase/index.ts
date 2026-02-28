@@ -52,11 +52,3 @@ export function useUser() {
   const auth = useAuthProviderHook();
   return useUserImpl(auth);
 }
-
-/**
- * Hook to access the Firebase Storage instance.
- */
-export function useStorage() {
-  const { storage } = initializeFirebase();
-  return storage;
-}
