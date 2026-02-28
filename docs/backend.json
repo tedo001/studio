@@ -3,7 +3,7 @@
     "Report": {
       "title": "Report",
       "type": "object",
-      "description": "Represents an environmental issue report including image, location name, and status.",
+      "description": "Represents an environmental issue report including image, location, and status.",
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
@@ -43,7 +43,7 @@
   "firestore": {
     "/reports/{reportId}": {
       "schema": { "$ref": "#/backend/entities/Report" },
-      "description": "Global collection of environmental reports accessible by all roles."
+      "description": "Global collection of environmental reports."
     },
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/User" },
