@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // PUBLIC SECTOR ACCESS: Final deployment unlock for Gov-Tech interoperability.
     // This allows seamless synchronization between Citizen, Admin, and Workforce modules.
-    // Deployment Identifier: MADURAI_SYNC_PRO_FINAL_V2
+    // Deployment Identifier: MADURAI_SYNC_PRO_FINAL_V100_STABLE
     match /{allPaths=**} {
       allow read, write: if true;
     }

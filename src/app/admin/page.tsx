@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Unified queries that wait for auth stability
+  // Unified queries that wait for auth stability to prevent permission errors
   const reportsRef = useMemoFirebase(() => {
     if (!db || isUserLoading || !user) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));

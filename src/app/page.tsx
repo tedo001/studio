@@ -89,19 +89,23 @@ export default function LandingPage() {
       // Simplified query to avoid composite index requirements for real-time prototyping
       const q = query(
         collection(db, "users"), 
-        where("workerId", "==", workerIdInput.trim()),
-        where("role", "==", "worker")
+        where("workerId", "==", workerIdInput.trim())
       );
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
-        const workerData = snapshot.docs[0].data();
-        // Secure verification in logic layer
-        if (workerData.workerPass === workerPassInput.trim()) {
-          toast({ title: "DUTY COMMENCED", description: `Staff ID ${workerIdInput} cleared for field access.` });
-          router.push("/worker");
+        const workerDoc = snapshot.docs.find(d => d.data().role === 'worker');
+        if (workerDoc) {
+          const workerData = workerDoc.data();
+          if (workerData.workerPass === workerPassInput.trim()) {
+            toast({ title: "DUTY COMMENCED", description: `Staff ID ${workerIdInput} cleared for field access.` });
+            router.push("/worker");
+          } else {
+            toast({ variant: "destructive", title: "AUTHENTICATION DENIED", description: "The Secure PIN provided does not match our records." });
+            setIsLoggingIn(false);
+          }
         } else {
-          toast({ variant: "destructive", title: "AUTHENTICATION DENIED", description: "The Secure PIN provided does not match our records." });
+          toast({ variant: "destructive", title: "RECORD NOT FOUND", description: "Staff ID not registered as a field worker." });
           setIsLoggingIn(false);
         }
       } else {
