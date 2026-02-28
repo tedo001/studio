@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, Globe, Github } from "lucide-react";
+import { ShieldCheck, User, HardHat, Leaf, ArrowRight, Loader2, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,10 +39,14 @@ export default function LandingPage() {
     
     setIsLoggingIn(true);
     
-    // Master Demo Credentials
+    // Master Demo Credentials for Admin Operations Command
     if ((cleanEmail === "admin@madurai.gov" || cleanEmail === "admin@gov.in") && cleanPass === "madurai2024") {
       if (user && db) {
-        setDoc(doc(db, "users", user.uid), { email: cleanEmail, role: "admin" }, { merge: true });
+        setDoc(doc(db, "users", user.uid), { 
+          email: cleanEmail, 
+          role: "admin",
+          displayName: "Ops Command"
+        }, { merge: true });
       }
       toast({ title: "Command Authorized", description: "Entering Ops Center." });
       router.push("/admin");
@@ -69,7 +73,7 @@ export default function LandingPage() {
       toast({ title: "Identity Verified", description: `Welcome, ${result.user.displayName}.` });
       router.push("/user");
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Sign-In Failed", description: error.message });
+      toast({ variant: "destructive", title: "Sign-In Failed", description: "Identity verification interrupted." });
       setIsLoggingIn(false);
     }
   };
@@ -164,15 +168,15 @@ export default function LandingPage() {
                  </CardHeader>
                  <CardContent className="p-8 space-y-5">
                    <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">Email</Label>
+                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">Official Email</Label>
                      <Input placeholder="admin@gov.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
                    </div>
                    <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">PIN</Label>
+                     <Label className="text-[10px] font-black uppercase text-slate-400 italic">Master Key</Label>
                      <Input type="password" placeholder="••••" value={password} onChange={(e) => setPassword(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
                    </div>
                    <Button className="w-full h-16 font-black rounded-2xl bg-slate-900 hover:bg-slate-800 text-lg uppercase italic" onClick={handleAdminLogin} disabled={isLoggingIn}>
-                     {isLoggingIn ? <Loader2 className="animate-spin" /> : "Authorize"}
+                     {isLoggingIn ? <Loader2 className="animate-spin" /> : "Authorize Command"}
                    </Button>
                  </CardContent>
                </Card>
@@ -193,7 +197,7 @@ export default function LandingPage() {
                      <Input type="password" placeholder="•••" value={workerPassInput} onChange={e => setWorkerPassInput(e.target.value)} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
                    </div>
                    <Button className="w-full h-16 font-black bg-orange-600 hover:bg-orange-700 rounded-2xl text-lg uppercase italic" onClick={handleWorkerLogin} disabled={isLoggingIn}>
-                     {isLoggingIn ? <Loader2 className="animate-spin" /> : "Login"}
+                     {isLoggingIn ? <Loader2 className="animate-spin" /> : "Login to Duty"}
                    </Button>
                  </CardContent>
                </Card>
