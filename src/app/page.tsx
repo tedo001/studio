@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,8 +25,8 @@ export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
-  const [workerId, setWorkerId] = useState("");
-  const [workerPass, setWorkerPass] = useState("");
+  const [workerIdInput, setWorkerIdInput] = useState("");
+  const [workerPassInput, setWorkerPassInput] = useState("");
   
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [forceShowUI, setForceShowUI] = useState(false);
@@ -60,7 +59,6 @@ export default function LandingPage() {
         toast({ title: "Command Authorized", description: "Entering Google Anti-Gravity Operations Center." });
         router.push("/admin");
       } catch (e) {
-        // Even if Firestore write fails, allow entry for local prototype preview
         router.push("/admin");
       }
     } else {
@@ -97,18 +95,17 @@ export default function LandingPage() {
       toast({ title: "Identity Verified", description: `Welcome, ${currentUser.displayName}.` });
       router.push("/user");
     } catch (error: any) {
-      console.error("Google Auth Error:", error);
       toast({
         variant: "destructive",
         title: "Sign-In Failed",
-        description: "Failed to authenticate with Google. Ensure popups are enabled.",
+        description: "Failed to authenticate with Google.",
       });
       setIsLoggingIn(false);
     }
   };
 
   const handleWorkerLogin = async () => {
-    if (!workerId || !workerPass || !db) {
+    if (!workerIdInput || !workerPassInput || !db) {
       toast({ variant: "destructive", title: "Incomplete", description: "Worker ID and PIN required." });
       return;
     }
@@ -117,15 +114,15 @@ export default function LandingPage() {
     try {
       const q = query(
         collection(db, "users"), 
-        where("workerId", "==", workerId), 
-        where("workerPass", "==", workerPass),
+        where("workerId", "==", workerIdInput.trim()), 
+        where("workerPass", "==", workerPassInput.trim()),
         where("role", "==", "worker")
       );
       
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
-        toast({ title: "Duty Commenced", description: `Access granted for Staff ID ${workerId}.` });
+        toast({ title: "Duty Commenced", description: `Access granted for Staff ID ${workerIdInput}.` });
         router.push("/worker");
       } else {
         toast({
@@ -177,7 +174,7 @@ export default function LandingPage() {
                   <div className="h-16 w-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <User className="h-8 w-8" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <h3 className="font-black text-xl uppercase tracking-tight italic">Citizen</h3>
                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">Report & Track</p>
                   </div>
@@ -192,7 +189,7 @@ export default function LandingPage() {
                   <div className="h-16 w-16 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <HardHat className="h-8 w-8" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <h3 className="font-black text-xl uppercase tracking-tight italic">Workforce</h3>
                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">Duty & Logs</p>
                   </div>
@@ -207,7 +204,7 @@ export default function LandingPage() {
                   <div className="h-16 w-16 bg-slate-100 text-slate-800 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <ShieldCheck className="h-8 w-8" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <h3 className="font-black text-xl uppercase tracking-tight italic">Ops Center</h3>
                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">Admin Command</p>
                   </div>
@@ -225,11 +222,11 @@ export default function LandingPage() {
               <CardTitle className="font-headline font-black text-3xl uppercase tracking-tighter italic">Command Auth</CardTitle>
             </CardHeader>
             <CardContent className="p-10 space-y-6 bg-white">
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Gov Credentials</Label>
                 <Input placeholder="admin@gov.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Master Key</Label>
                 <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
               </div>
@@ -247,13 +244,13 @@ export default function LandingPage() {
               <CardTitle className="font-headline font-black text-3xl uppercase tracking-tighter italic">Duty Login</CardTitle>
             </CardHeader>
             <CardContent className="p-10 space-y-6 bg-white">
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Staff ID</Label>
-                <Input placeholder="MDU-W-101" value={workerId} onChange={e => setWorkerId(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
+                <Input placeholder="w122" value={workerIdInput} onChange={e => setWorkerIdInput(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] italic">Secure PIN</Label>
-                <Input type="password" placeholder="••••" value={workerPass} onChange={e => setWorkerPass(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
+                <Input type="password" placeholder="•••" value={workerPassInput} onChange={e => setWorkerPassInput(e.target.value)} className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
               </div>
               <Button className="w-full h-20 font-black bg-orange-600 hover:bg-orange-700 rounded-3xl shadow-2xl mt-4 transition-transform active:scale-95 italic text-lg" onClick={handleWorkerLogin} disabled={isLoggingIn}>
                 {isLoggingIn ? <Loader2 className="animate-spin h-8 w-8" /> : "AUTHENTICATE"}
@@ -268,7 +265,7 @@ export default function LandingPage() {
               <h2 className="text-3xl font-black font-headline tracking-tighter uppercase italic relative z-10">Citizen Portal</h2>
               <p className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em] relative z-10 italic">Live Infrastructure Reporting</p>
             </div>
-            <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-2xl transition-transform active:scale-95 bg-blue-600 hover:bg-blue-700 italic flex items-center justify-center gap-4" onClick={startAsUser} disabled={isLoggingIn}>
+            <Button className="w-full h-24 text-2xl font-black rounded-[3rem] shadow-2xl transition-transform active:scale-90 bg-blue-600 hover:bg-blue-700 italic flex items-center justify-center gap-4" onClick={startAsUser} disabled={isLoggingIn}>
               {isLoggingIn ? <Loader2 className="animate-spin h-10 w-10" /> : (
                 <>
                   <Globe className="h-8 w-8" />

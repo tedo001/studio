@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin, AlertCircle, TrendingUp, Github } from "lucide-react";
+import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin, AlertCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
+  // Memoize queries to prevent unnecessary re-renders and slowness
   const reportsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));
@@ -49,10 +50,10 @@ export default function AdminDashboard() {
     setIsAdding(true);
     const usersCollection = collection(db, "users");
     const data = {
-      email: workerEmail,
+      email: workerEmail.toLowerCase().trim(),
       role: "worker",
-      workerId,
-      workerPass,
+      workerId: workerId.trim(),
+      workerPass: workerPass.trim(),
       enrolledAt: serverTimestamp()
     };
 
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
         setWorkerId("");
         setWorkerPass("");
         setWorkerEmail("");
-        toast({ title: "Personnel Enrolled", description: `Staff ID ${workerId} is now live in the system.` });
+        toast({ title: "Personnel Enrolled", description: `Staff ID ${data.workerId} is now live in the system.` });
       })
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -83,8 +84,8 @@ export default function AdminDashboard() {
           <div className="bg-primary/20 p-3 rounded-2xl animate-anti-gravity">
             <ShieldCheck className="h-8 w-8 text-primary" />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-black font-headline tracking-tighter uppercase italic">Operations Command</h1>
+          <div className="flex flex-col text-left">
+            <h1 className="text-2xl font-black font-headline tracking-tighter uppercase italic leading-none">Operations Command</h1>
             <span className="text-[9px] font-black uppercase text-slate-500 tracking-[0.5em] italic">Google Anti-Gravity Framework</span>
           </div>
         </div>
@@ -138,8 +139,8 @@ export default function AdminDashboard() {
                 {reports?.[0]?.location ? (
                   <MapPreview latitude={reports[0].location.latitude} longitude={reports[0].location.longitude} className="h-80 rounded-[2.5rem] shadow-inner" />
                 ) : (
-                  <div className="h-80 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border-4 border-dashed border-slate-200">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.5em] italic">Awaiting Global Intel</p>
+                  <div className="h-80 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border-4 border-dashed border-slate-200 text-center p-8">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.5em] italic">Awaiting Global Intel Feed</p>
                   </div>
                 )}
               </div>
@@ -156,16 +157,16 @@ export default function AdminDashboard() {
               <CardContent className="p-10 space-y-8">
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Official Staff Email</Label>
-                  <Input value={workerEmail} onChange={e => setWorkerEmail(e.target.value)} placeholder="worker@madurai.gov" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
+                  <Input value={workerEmail} onChange={e => setWorkerEmail(e.target.value)} placeholder="sam@gmail.com" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Staff ID</Label>
-                    <Input value={workerId} onChange={e => setWorkerId(e.target.value)} placeholder="MDU-W-101" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
+                    <Input value={workerId} onChange={e => setWorkerId(e.target.value)} placeholder="w122" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
                   </div>
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Secure PIN</Label>
-                    <Input value={workerPass} type="password" onChange={e => setWorkerPass(e.target.value)} placeholder="••••" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
+                    <Input value={workerPass} type="password" onChange={e => setWorkerPass(e.target.value)} placeholder="•••" className="h-16 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" />
                   </div>
                 </div>
                 <Button className="w-full h-20 rounded-[2rem] font-black shadow-2xl mt-4 transition-transform active:scale-95 bg-slate-900 hover:bg-slate-800 uppercase italic tracking-tight text-lg" onClick={handleAddWorker} disabled={isAdding}>
@@ -176,7 +177,9 @@ export default function AdminDashboard() {
 
             <div className="space-y-5">
               <h3 className="font-black text-[10px] text-slate-400 px-4 uppercase tracking-[0.4em] italic">Authorized Field Roster</h3>
-              {users?.filter((u: any) => u.role === 'worker').length === 0 ? (
+              {usersLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>
+              ) : users?.filter((u: any) => u.role === 'worker').length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.5em] italic">No verified staff accounts</p>
                 </div>
@@ -188,7 +191,7 @@ export default function AdminDashboard() {
                         <div className="h-16 w-16 rounded-3xl bg-orange-50 flex items-center justify-center border border-orange-100 shadow-inner">
                           <HardHat className="h-8 w-8 text-orange-600" />
                         </div>
-                        <div>
+                        <div className="text-left">
                           <p className="font-black text-xl text-slate-900 uppercase italic tracking-tighter">{w.workerId}</p>
                           <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-50">{w.email}</p>
                         </div>
@@ -225,7 +228,7 @@ export default function AdminDashboard() {
                       <div className="relative w-40 h-40 shrink-0 bg-slate-100 rounded-[2rem] overflow-hidden shadow-2xl border-[6px] border-white">
                         <Image src={r.imageUrl} fill alt="incident" className="object-cover group-hover:scale-110 transition-transform duration-1000" />
                       </div>
-                      <div className="flex-1 flex flex-col justify-between py-2">
+                      <div className="flex-1 flex flex-col justify-between py-2 text-left">
                         <div className="flex justify-between items-start">
                           <h4 className="font-black text-2xl text-slate-900 italic tracking-tighter uppercase">{r.aiCategory}</h4>
                           <Badge variant="secondary" className={`text-[10px] h-7 px-4 font-black ${r.severity === 'High' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'} uppercase shrink-0 rounded-full italic`}>{r.severity} Priority</Badge>
