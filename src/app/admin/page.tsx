@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin } from "lucide-react";
+import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
+  // Memoize the query to fetch ALL reports for admin
   const reportsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));
@@ -37,8 +38,8 @@ export default function AdminDashboard() {
     return collection(db, "users");
   }, [db]);
 
-  const { data: reports } = useCollection(reportsQuery);
-  const { data: users } = useCollection(usersQuery);
+  const { data: reports, loading: reportsLoading } = useCollection(reportsQuery);
+  const { data: users, loading: usersLoading } = useCollection(usersQuery);
 
   const handleAddWorker = async () => {
     if (!workerId || !workerPass || !workerEmail || !db) return;
@@ -122,7 +123,7 @@ export default function AdminDashboard() {
             {reports?.[0]?.location && (
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Latest Incident Map</Label>
-                <MapPreview lat={reports[0].location.lat} lng={reports[0].location.lng} className="h-64" />
+                <MapPreview latitude={reports[0].location.latitude} longitude={reports[0].location.longitude} className="h-64" />
               </div>
             )}
           </TabsContent>
@@ -181,35 +182,48 @@ export default function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input placeholder="Search cases..." className="pl-10 h-12 rounded-2xl bg-white border-none shadow-sm" />
             </div>
-            {reports?.map((r: any, i: number) => (
-              <Card key={i} className="overflow-hidden border-none shadow-md rounded-2xl bg-white group hover:shadow-xl transition-shadow">
-                <CardContent className="p-0 flex flex-col">
-                  <div className="flex">
-                    <div className="relative w-28 h-28 shrink-0 bg-slate-100">
-                      <Image src={r.imageUrl} fill alt="report" className="object-cover" />
-                    </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-sm text-slate-800 truncate pr-2">{r.aiCategory}</h4>
-                        <Badge variant="secondary" className={`text-[9px] h-5 px-2 font-black ${r.severity === 'High' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600'} uppercase tracking-tighter`}>{r.severity}</Badge>
+            
+            {reportsLoading ? (
+              <div className="flex flex-col items-center py-20 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>Syncing case records...</p>
+              </div>
+            ) : !reports || reports.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-white rounded-3xl border-2 border-dashed">
+                <AlertCircle className="h-12 w-12 text-slate-200" />
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Incident Data Found</p>
+              </div>
+            ) : (
+              reports.map((r: any, i: number) => (
+                <Card key={i} className="overflow-hidden border-none shadow-md rounded-2xl bg-white group hover:shadow-xl transition-shadow">
+                  <CardContent className="p-0 flex flex-col">
+                    <div className="flex">
+                      <div className="relative w-28 h-28 shrink-0 bg-slate-100">
+                        <Image src={r.imageUrl} fill alt="report" className="object-cover" />
                       </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
-                        <div className="flex gap-2">
-                          {r.location && <MapPin className="h-4 w-4 text-primary" />}
-                          <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold text-primary hover:no-underline">Manage</Button>
+                      <div className="p-4 flex-1 flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-bold text-sm text-slate-800 truncate pr-2">{r.aiCategory}</h4>
+                          <Badge variant="secondary" className={`text-[9px] h-5 px-2 font-black ${r.severity === 'High' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600'} uppercase tracking-tighter`}>{r.severity}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
+                          <div className="flex gap-2">
+                            {r.location && <MapPin className="h-4 w-4 text-primary" />}
+                            <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold text-primary hover:no-underline">Manage</Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  {r.location && (
-                    <div className="p-2 border-t">
-                      <MapPreview lat={r.location.lat} lng={r.location.lng} className="h-32 rounded-xl" />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    {r.location && (
+                      <div className="p-2 border-t bg-slate-50/50">
+                        <MapPreview latitude={r.location.latitude} longitude={r.location.longitude} className="h-32 rounded-xl" />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </main>

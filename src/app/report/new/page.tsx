@@ -8,7 +8,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { aiCategorySuggestion } from "@/ai/flows/ai-category-suggestion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Camera, Loader2, CheckCircle, X, MapPin } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, CheckCircle, X, MapPin, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,35 +35,41 @@ export default function NewReportPage() {
   const [severity, setSeverity] = useState("Medium");
   const [submitted, setSubmitted] = useState(false);
   
-  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [location, setLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [locLoading, setLocLoading] = useState(false);
 
+  const getGPS = () => {
+    setLocLoading(true);
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+          setLocLoading(false);
+        },
+        (err) => {
+          console.error(err);
+          toast({
+            title: "Location Access Required",
+            description: "Please enable GPS permissions in your browser to file a report.",
+            variant: "destructive"
+          });
+          setLocLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setLocLoading(false);
+      toast({
+        title: "GPS Not Supported",
+        description: "Your browser does not support geolocation tracking.",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
-    const getGPS = () => {
-      setLocLoading(true);
-      if (typeof window !== "undefined" && "geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            setLocLoading(false);
-          },
-          (err) => {
-            console.error(err);
-            toast({
-              title: "Location Denied",
-              description: "Please enable GPS to provide accurate report location.",
-              variant: "destructive"
-            });
-            setLocLoading(false);
-          },
-          { enableHighAccuracy: true }
-        );
-      } else {
-        setLocLoading(false);
-      }
-    };
     getGPS();
-  }, [toast]);
+  }, []);
 
   const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,7 +100,7 @@ export default function NewReportPage() {
       setCategory(result.aiCategory);
     } catch (error) {
       console.error("AI Analysis failed", error);
-      setCategory("Litter"); 
+      setCategory("General Environmental Issue"); 
     } finally {
       setAiAnalyzing(false);
     }
@@ -106,11 +112,15 @@ export default function NewReportPage() {
       return;
     }
 
-    // Simulator mode for Studio users who haven't connected Firebase yet
+    if (!location) {
+      toast({ title: "GPS Required", description: "Please wait for your location to be acquired or click 'Retry GPS'.", variant: "destructive" });
+      return;
+    }
+
     if (!db || !storage || !user) {
        toast({ 
-         title: "Simulated Submission", 
-         description: "Firebase is not connected. Simulating a successful report for preview.", 
+         title: "Demo Mode Submission", 
+         description: "Firebase is not yet connected. Simulating a successful report locally.", 
        });
        setUploading(true);
        setTimeout(() => {
@@ -136,7 +146,7 @@ export default function NewReportPage() {
         status: "Pending",
         timestamp: serverTimestamp(),
         userId: user.uid,
-        location: location || null,
+        location: location,
       };
 
       const reportsCollection = collection(db, "reports");
@@ -146,7 +156,7 @@ export default function NewReportPage() {
           setSubmitted(true);
           toast({
             title: "Report Filed",
-            description: "Your report has been sent to the city council.",
+            description: "Your report has been successfully recorded and shared with authorities.",
           });
           setTimeout(() => router.push("/user"), 2000);
         })
@@ -164,7 +174,7 @@ export default function NewReportPage() {
       console.error("Submission error", error);
       toast({
         title: "Upload Failed",
-        description: error.message || "Could not upload image. Please try again.",
+        description: error.message || "Could not upload image. Please check your internet connection.",
         variant: "destructive",
       });
       setUploading(false);
@@ -179,7 +189,7 @@ export default function NewReportPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-primary font-headline">Report Submitted!</h2>
-          <p className="text-muted-foreground">Location and image recorded. Authorities have been notified.</p>
+          <p className="text-muted-foreground">Location and evidence recorded. You can track progress in your activity feed.</p>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Returning to dashboard...
@@ -196,21 +206,24 @@ export default function NewReportPage() {
             <ArrowLeft className="h-6 w-6" />
           </Button>
         </Link>
-        <h1 className="text-xl font-bold font-headline">New Report</h1>
+        <h1 className="text-xl font-bold font-headline">Report New Issue</h1>
       </header>
 
       <div className="px-6 flex-1 flex flex-col space-y-6 py-6">
         {!location && !locLoading && (
-          <Alert variant="destructive">
-            <AlertTitle className="flex items-center gap-2 text-xs font-bold uppercase"><MapPin className="h-4 w-4" /> GPS Required</AlertTitle>
-            <AlertDescription className="text-xs">
-              We couldn't get your location. Reports without GPS coordinates may take longer to process.
+          <Alert variant="destructive" className="rounded-2xl border-2">
+            <AlertTitle className="flex items-center gap-2 text-xs font-black uppercase"><MapPin className="h-4 w-4" /> GPS Access Required</AlertTitle>
+            <AlertDescription className="text-xs space-y-2">
+              <p>We need your location to help workers find the issue. Please enable GPS and click retry.</p>
+              <Button size="sm" variant="outline" className="h-8 rounded-xl bg-white" onClick={getGPS}>
+                <RefreshCw className="h-3 w-3 mr-2" /> Retry GPS
+              </Button>
             </AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
-          <Label className="text-lg font-bold">1. Capture Evidence</Label>
+          <Label className="text-lg font-bold">1. Capture Visual Evidence</Label>
           <div 
             onClick={() => !image && fileInputRef.current?.click()}
             className={`relative h-64 w-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all duration-300 ${image ? 'border-primary' : 'border-muted-foreground/30 bg-slate-50'}`}
@@ -232,7 +245,7 @@ export default function NewReportPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold">Tap to Open Camera</p>
-                  <p className="text-xs text-muted-foreground mt-1">Include surroundings for better location</p>
+                  <p className="text-xs text-muted-foreground mt-1">Include surroundings for better context</p>
                 </div>
               </div>
             )}
@@ -250,55 +263,55 @@ export default function NewReportPage() {
         {image && (
           <div className="space-y-6 animate-in slide-in-from-bottom-6 duration-500">
             <div className="space-y-4">
-              <Label className="text-lg font-bold">2. Verification</Label>
+              <Label className="text-lg font-bold">2. Verification Details</Label>
               <Card className="bg-slate-50 border-none shadow-sm rounded-3xl overflow-hidden">
                 <CardContent className="p-6 space-y-5">
                   <div className="space-y-3">
                     <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Incident Location</Label>
                     {location ? (
-                      <MapPreview lat={location.lat} lng={location.lng} className="h-40" />
+                      <MapPreview latitude={location.latitude} longitude={location.longitude} className="h-40" />
                     ) : (
                       <div className="h-40 rounded-2xl bg-slate-200 animate-pulse flex items-center justify-center text-slate-400">
-                        <MapPin className="h-8 w-8" />
+                        {locLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <MapPin className="h-8 w-8" />}
                       </div>
                     )}
                     <div className="flex items-center text-[10px] font-bold gap-2 text-muted-foreground">
                       {locLoading ? (
                         <div className="flex items-center gap-2 text-primary">
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          <span>Fetching GPS...</span>
+                          <span>Acquiring GPS Signal...</span>
                         </div>
                       ) : (
-                        location ? `Coordinates: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : "GPS data unavailable"
+                        location ? `Coord: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : "Location signal lost"
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Issue Category</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">AI Suggested Category</Label>
                     <div className="flex items-center">
                       {aiAnalyzing ? (
                         <div className="flex items-center space-x-2 text-primary bg-primary/5 px-4 py-2 rounded-xl">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-xs font-bold">AI Analyzing...</span>
+                          <span className="text-xs font-bold">Analyzing Evidence...</span>
                         </div>
                       ) : (
                         <Badge variant="secondary" className="bg-white text-primary px-4 py-2 border-primary/10 shadow-sm text-xs font-bold rounded-xl">
-                          {category || "Uncategorized"}
+                          {category || "Identifying Issue..."}
                         </Badge>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Urgency Level</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Issue Priority</Label>
                     <Select value={severity} onValueChange={setSeverity}>
                       <SelectTrigger className="bg-white h-12 rounded-xl border-none shadow-sm font-bold">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Low">Low - Cosmetic issue</SelectItem>
-                        <SelectItem value="Medium">Medium - Health hazard</SelectItem>
+                        <SelectItem value="Low">Low - Non-hazardous</SelectItem>
+                        <SelectItem value="Medium">Medium - Regular hazard</SelectItem>
                         <SelectItem value="High">High - Emergency removal</SelectItem>
                       </SelectContent>
                     </Select>
@@ -310,14 +323,14 @@ export default function NewReportPage() {
             <Button 
               className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl transition-transform active:scale-95" 
               onClick={handleSubmit}
-              disabled={uploading || aiAnalyzing}
+              disabled={uploading || aiAnalyzing || !location}
             >
               {uploading ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span>Submitting Case...</span>
                 </div>
-              ) : "Submit to City Council"}
+              ) : !location ? "Waiting for GPS..." : "File Official Report"}
             </Button>
           </div>
         )}

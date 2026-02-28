@@ -5,7 +5,7 @@ import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy, where } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, History, Leaf, AlertCircle, LogOut, Home, Loader2 } from "lucide-react";
+import { Plus, MapPin, History, Leaf, AlertCircle, LogOut, Home, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ export default function UserDashboard() {
   const router = useRouter();
 
   // Memoize the query to prevent infinite re-renders and slowness
+  // uses onSnapshot internally via useCollection for continuous tracking
   const reportsQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(
@@ -43,7 +44,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
         <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground font-medium">Validating session...</p>
+        <p className="text-muted-foreground font-medium">Authenticating Citizen...</p>
       </div>
     );
   }
@@ -57,7 +58,7 @@ export default function UserDashboard() {
             <Leaf className="h-6 w-6 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-primary font-headline">
-            My Activity
+            My Incident Feed
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -72,6 +73,13 @@ export default function UserDashboard() {
 
       {/* Reports Feed */}
       <div className="flex-1 px-6 space-y-4 overflow-y-auto">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Tracking</h2>
+          <div className="flex items-center gap-1 text-[9px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">
+            <RefreshCw className="h-2 w-2 animate-spin" /> Live Updates
+          </div>
+        </div>
+
         {reportsLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -84,12 +92,12 @@ export default function UserDashboard() {
               <AlertCircle className="h-8 w-8 text-slate-300" />
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-600">Clean Slate!</p>
-              <p className="text-sm text-muted-foreground px-10">You haven't filed any reports yet. Use the button below to start.</p>
+              <p className="text-lg font-bold text-slate-600">No Reports Filed</p>
+              <p className="text-sm text-muted-foreground px-10">Help keep Madurai clean. Submit your first environmental report today.</p>
             </div>
             <Link href="/report/new">
               <Button className="mt-4 rounded-xl px-8 h-12 shadow-md">
-                Capture First Issue
+                Get Started
               </Button>
             </Link>
           </div>
@@ -110,7 +118,7 @@ export default function UserDashboard() {
                   </Badge>
                   <Badge 
                     variant={report.status === 'Resolved' ? 'default' : 'secondary'} 
-                    className={`font-bold shadow-md h-7 px-3 text-[10px] uppercase ${report.status === 'Pending' ? 'bg-orange-100 text-orange-700' : ''}`}
+                    className={`font-bold shadow-md h-7 px-3 text-[10px] uppercase ${report.status === 'Pending' ? 'bg-orange-100 text-orange-700' : report.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : ''}`}
                   >
                     {report.status}
                   </Badge>

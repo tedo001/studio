@@ -86,9 +86,9 @@ export default function WorkerDashboard() {
                       <CardTitle className="text-md mt-2 font-bold">{job.aiCategory}</CardTitle>
                     </div>
                     <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs font-bold" onClick={() => {
-                      if(job.location) window.open(`https://www.google.com/maps?q=${job.location.lat},${job.location.lng}`);
+                      if(job.location) window.open(`https://www.google.com/maps?q=${job.location.latitude},${job.location.longitude}`);
                     }}>
-                      <Navigation className="h-3.5 w-3.5 mr-1" /> GPS
+                      <Navigation className="h-3.5 w-3.5 mr-1" /> Navigation
                     </Button>
                   </div>
                 </CardHeader>
@@ -99,9 +99,9 @@ export default function WorkerDashboard() {
                   <div className="p-3 bg-slate-50 border-b">
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="h-3 w-3 text-primary" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Location View</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Job Location</span>
                     </div>
-                    <MapPreview lat={job.location.lat} lng={job.location.lng} className="h-32 rounded-xl" />
+                    <MapPreview latitude={job.location.latitude} longitude={job.location.longitude} className="h-32 rounded-xl" />
                   </div>
                 )}
                 <CardContent className="p-4 flex gap-3">
@@ -111,7 +111,7 @@ export default function WorkerDashboard() {
                     </Button>
                   ) : (
                     <Button className="w-full bg-green-600 hover:bg-green-700 h-12 rounded-xl font-bold shadow-lg" onClick={() => updateStatus(job.id, "Resolved")}>
-                      Mark as Done
+                      Mark as Resolved
                     </Button>
                   )}
                 </CardContent>

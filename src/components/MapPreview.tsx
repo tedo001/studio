@@ -3,20 +3,20 @@
 import { cn } from "@/lib/utils";
 
 interface MapPreviewProps {
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   className?: string;
 }
 
 /**
  * A simple OpenStreetMap embed component to show a specific location.
  */
-export function MapPreview({ lat, lng, className }: MapPreviewProps) {
+export function MapPreview({ latitude, longitude, className }: MapPreviewProps) {
   // Madurai central bounds approx (9.9252, 78.1198)
   // We calculate a small bounding box around the point
   const delta = 0.002;
-  const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
+  const bbox = `${longitude - delta},${latitude - delta},${longitude + delta},${latitude + delta}`;
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${latitude},${longitude}`;
 
   return (
     <div className={cn("relative w-full aspect-video rounded-2xl overflow-hidden border bg-slate-100 shadow-inner", className)}>
