@@ -1,6 +1,7 @@
+
 "use client";
 
-import { Download, Smartphone } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -21,9 +22,23 @@ export function DownloadAppButton() {
     
     // Simulate a download delay
     setTimeout(() => {
+      // Create a dummy file blob to simulate an APK download in the browser
+      const dummyContent = "This is a placeholder for the Madurai CleanUp Android APK. In a production environment, this would be the binary .apk file for side-loading.";
+      const blob = new Blob([dummyContent], { type: 'application/vnd.android.package-archive' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'madurai-cleanup-v1.0.apk');
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup resources
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast({
         title: "Download Started",
-        description: "madurai-cleanup-v1.apk is being saved to your device.",
+        description: "madurai-cleanup-v1.0.apk is being saved to your device.",
       });
     }, 2000);
   };
