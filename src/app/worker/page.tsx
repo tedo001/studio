@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -6,11 +5,12 @@ import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, where, updateDoc, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HardHat, LogOut, CheckCircle2, Navigation, Loader2 } from "lucide-react";
+import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { MapPreview } from "@/components/MapPreview";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
@@ -19,7 +19,6 @@ export default function WorkerDashboard() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Memoize the query to prevent performance issues and infinite loops
   const jobsQuery = useMemo(() => {
     if (!db) return null;
     return query(
@@ -51,7 +50,7 @@ export default function WorkerDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-orange-50/30">
-      <header className="bg-white border-b p-6 flex items-center justify-between sticky top-0 z-20">
+      <header className="bg-white border-b p-6 flex items-center justify-between sticky top-0 z-20 shadow-sm">
         <div className="flex items-center space-x-2 text-orange-600">
           <HardHat className="h-6 w-6" />
           <h1 className="text-xl font-bold font-headline">Field Duty</h1>
@@ -96,6 +95,15 @@ export default function WorkerDashboard() {
                 <div className="relative h-48 w-full bg-slate-100">
                   <Image src={job.imageUrl} alt="task" fill className="object-cover" />
                 </div>
+                {job.location && (
+                  <div className="p-3 bg-slate-50 border-b">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="h-3 w-3 text-primary" />
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Location View</span>
+                    </div>
+                    <MapPreview lat={job.location.lat} lng={job.location.lng} className="h-32 rounded-xl" />
+                  </div>
+                )}
                 <CardContent className="p-4 flex gap-3">
                   {job.status === 'Pending' ? (
                     <Button className="w-full bg-orange-600 hover:bg-orange-700 h-12 rounded-xl font-bold shadow-lg" onClick={() => updateStatus(job.id, "In Progress")}>

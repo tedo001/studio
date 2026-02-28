@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { MapPreview } from "@/components/MapPreview";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
@@ -54,7 +55,8 @@ export default function NewReportPage() {
               variant: "destructive"
             });
             setLocLoading(false);
-          }
+          },
+          { enableHighAccuracy: true }
         );
       } else {
         setLocLoading(false);
@@ -66,7 +68,6 @@ export default function NewReportPage() {
   const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Basic size check (approx 5MB limit for base64 strings to be safe with server actions)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -93,11 +94,6 @@ export default function NewReportPage() {
       setCategory(result.aiCategory);
     } catch (error) {
       console.error("AI Analysis failed", error);
-      toast({
-        title: "AI Analysis Error",
-        description: "Couldn't suggest a category automatically. Please select one manually.",
-        variant: "destructive",
-      });
       setCategory("Litter"); 
     } finally {
       setAiAnalyzing(false);
@@ -110,12 +106,18 @@ export default function NewReportPage() {
       return;
     }
 
+    // Simulator mode for Studio users who haven't connected Firebase yet
     if (!db || !storage || !user) {
        toast({ 
-         title: "Disconnected Mode", 
-         description: "Firebase is not connected. Submission is disabled in Demo Mode.", 
-         variant: "destructive" 
+         title: "Simulated Submission", 
+         description: "Firebase is not connected. Simulating a successful report for preview.", 
        });
+       setUploading(true);
+       setTimeout(() => {
+         setSubmitted(true);
+         setUploading(false);
+         setTimeout(() => router.push("/user"), 2000);
+       }, 1500);
        return;
     }
 
@@ -124,7 +126,6 @@ export default function NewReportPage() {
       const reportId = Math.random().toString(36).substring(7);
       const storageRef = ref(storage, `reports/${user.uid}/${reportId}.jpg`);
       
-      // Upload image to storage
       await uploadString(storageRef, image, "data_url");
       const downloadUrl = await getDownloadURL(storageRef);
 
@@ -140,7 +141,6 @@ export default function NewReportPage() {
 
       const reportsCollection = collection(db, "reports");
       
-      // Perform Firestore write without awaiting
       addDoc(reportsCollection, reportData)
         .then(() => {
           setSubmitted(true);
@@ -189,7 +189,7 @@ export default function NewReportPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background pb-10">
       <header className="p-4 flex items-center space-x-4 border-b bg-white sticky top-0 z-20">
         <Link href="/user">
           <Button variant="ghost" size="icon" className="rounded-full">
@@ -199,7 +199,7 @@ export default function NewReportPage() {
         <h1 className="text-xl font-bold font-headline">New Report</h1>
       </header>
 
-      <div className="px-6 flex-1 flex flex-col space-y-6 py-6 pb-10">
+      <div className="px-6 flex-1 flex flex-col space-y-6 py-6">
         {!location && !locLoading && (
           <Alert variant="destructive">
             <AlertTitle className="flex items-center gap-2 text-xs font-bold uppercase"><MapPin className="h-4 w-4" /> GPS Required</AlertTitle>
@@ -253,19 +253,23 @@ export default function NewReportPage() {
               <Label className="text-lg font-bold">2. Verification</Label>
               <Card className="bg-slate-50 border-none shadow-sm rounded-3xl overflow-hidden">
                 <CardContent className="p-6 space-y-5">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Location Status</Label>
-                    <div className="flex items-center text-sm font-bold gap-2">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Incident Location</Label>
+                    {location ? (
+                      <MapPreview lat={location.lat} lng={location.lng} className="h-40" />
+                    ) : (
+                      <div className="h-40 rounded-2xl bg-slate-200 animate-pulse flex items-center justify-center text-slate-400">
+                        <MapPin className="h-8 w-8" />
+                      </div>
+                    )}
+                    <div className="flex items-center text-[10px] font-bold gap-2 text-muted-foreground">
                       {locLoading ? (
                         <div className="flex items-center gap-2 text-primary">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Fixing coordinates...</span>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Fetching GPS...</span>
                         </div>
                       ) : (
-                        <>
-                          <MapPin className={`h-4 w-4 ${location ? 'text-green-600' : 'text-red-600'}`} />
-                          {location ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : "GPS Position missing"}
-                        </>
+                        location ? `Coordinates: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : "GPS data unavailable"
                       )}
                     </div>
                   </div>
@@ -276,7 +280,7 @@ export default function NewReportPage() {
                       {aiAnalyzing ? (
                         <div className="flex items-center space-x-2 text-primary bg-primary/5 px-4 py-2 rounded-xl">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-xs font-bold">AI Analyzing Image...</span>
+                          <span className="text-xs font-bold">AI Analyzing...</span>
                         </div>
                       ) : (
                         <Badge variant="secondary" className="bg-white text-primary px-4 py-2 border-primary/10 shadow-sm text-xs font-bold rounded-xl">

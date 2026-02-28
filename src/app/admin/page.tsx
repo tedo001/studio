@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -10,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2 } from "lucide-react";
+import { ShieldCheck, UserPlus, Home, LogOut, HardHat, Search, Loader2, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { MapPreview } from "@/components/MapPreview";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
@@ -27,7 +27,6 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Memoized collection references to prevent redundant loading
   const reportsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));
@@ -120,6 +119,12 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+            {reports?.[0]?.location && (
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Latest Incident Map</Label>
+                <MapPreview lat={reports[0].location.lat} lng={reports[0].location.lng} className="h-64" />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="workers" className="space-y-4 py-4">
@@ -178,20 +183,30 @@ export default function AdminDashboard() {
             </div>
             {reports?.map((r: any, i: number) => (
               <Card key={i} className="overflow-hidden border-none shadow-md rounded-2xl bg-white group hover:shadow-xl transition-shadow">
-                <CardContent className="p-0 flex">
-                  <div className="relative w-28 h-28 shrink-0 bg-slate-100">
-                    <Image src={r.imageUrl} fill alt="report" className="object-cover" />
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-sm text-slate-800 truncate pr-2">{r.aiCategory}</h4>
-                      <Badge variant="secondary" className={`text-[9px] h-5 px-2 font-black ${r.severity === 'High' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600'} uppercase tracking-tighter`}>{r.severity}</Badge>
+                <CardContent className="p-0 flex flex-col">
+                  <div className="flex">
+                    <div className="relative w-28 h-28 shrink-0 bg-slate-100">
+                      <Image src={r.imageUrl} fill alt="report" className="object-cover" />
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
-                      <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold text-primary hover:no-underline">Manage</Button>
+                    <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-sm text-slate-800 truncate pr-2">{r.aiCategory}</h4>
+                        <Badge variant="secondary" className={`text-[9px] h-5 px-2 font-black ${r.severity === 'High' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600'} uppercase tracking-tighter`}>{r.severity}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status: <span className={r.status === 'Resolved' ? 'text-green-600' : 'text-orange-600'}>{r.status}</span></span>
+                        <div className="flex gap-2">
+                          {r.location && <MapPin className="h-4 w-4 text-primary" />}
+                          <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold text-primary hover:no-underline">Manage</Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  {r.location && (
+                    <div className="p-2 border-t">
+                      <MapPreview lat={r.location.lat} lng={r.location.lng} className="h-32 rounded-xl" />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
