@@ -19,7 +19,7 @@ import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/e
 
 export default function AdminDashboard() {
   const db = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [workerEmail, setWorkerEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Optimized memoization: Wait for authenticated user before querying
+  // Queries only activate once authentication is established
   const reportsRef = useMemoFirebase(() => (db && user) ? collection(db, "reports") : null, [db, user]);
   const usersRef = useMemoFirebase(() => (db && user) ? collection(db, "users") : null, [db, user]);
 
@@ -41,8 +41,8 @@ export default function AdminDashboard() {
       return;
     }
 
-    if (!db) {
-      toast({ title: "Database Offline", description: "Firestore is not connected.", variant: "destructive" });
+    if (!db || !user) {
+      toast({ title: "Auth Required", description: "Initializing secure session...", variant: "destructive" });
       return;
     }
 
@@ -75,6 +75,15 @@ export default function AdminDashboard() {
         setIsAdding(false);
       });
   };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Admin Auth...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
