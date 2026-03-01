@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -24,16 +25,28 @@ interface Report {
   userId: string;
 }
 
+function FormattedDate({ date }: { date: any }) {
+  const [formatted, setFormatted] = useState("");
+  useEffect(() => {
+    if (date?.toDate) {
+      setFormatted(new Date(date.toDate()).toLocaleDateString());
+    } else {
+      setFormatted("Real-Time");
+    }
+  }, [date]);
+  return <span>{formatted}</span>;
+}
+
 export default function UserDashboard() {
-  const { isUserLoading: authLoading } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
   const db = useFirestore();
   const router = useRouter();
 
-  // Global Community Feed: Optimized for high-stability listing
+  // Wait for auth to be stable before querying to avoid permission race conditions
   const reportsQuery = useMemoFirebase(() => {
-    if (!db) return null;
+    if (!db || authLoading || !user) return null;
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));
-  }, [db]);
+  }, [db, authLoading, user?.uid]);
 
   const { data: reports, isLoading: reportsLoading } = useCollection<Report>(reportsQuery);
 
@@ -122,7 +135,7 @@ export default function UserDashboard() {
                     {report.locationName || "Detecting Sector..."}
                   </div>
                   <div className="text-[10px] font-black text-slate-300 uppercase italic">
-                    {report.timestamp?.toDate ? new Date(report.timestamp.toDate()).toLocaleDateString() : 'Real-Time'}
+                    <FormattedDate date={report.timestamp} />
                   </div>
                 </div>
                 <div className="flex items-center text-[10px] font-black uppercase text-slate-400 tracking-widest italic">

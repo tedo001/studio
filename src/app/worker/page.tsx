@@ -1,11 +1,13 @@
+
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, updateDoc, doc, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin, Camera, X, Check, ArrowLeft } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin, Camera, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +84,7 @@ export default function WorkerDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-orange-600" />
+        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Workforce Session...</p>
       </div>
     );
   }
@@ -187,5 +190,3 @@ export default function WorkerDashboard() {
     </div>
   );
 }
-
-import { Label } from "@/components/ui/label";
