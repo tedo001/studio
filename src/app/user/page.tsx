@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, Leaf, AlertCircle, Home, Loader2, RefreshCw, Users } from "lucide-react";
+import { Plus, MapPin, Leaf, AlertCircle, Home, Loader2, RefreshCw, Users, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 interface Report {
   id: string;
   imageUrl: string;
+  resolvedImageUrl?: string;
   aiCategory: string;
   severity: string;
   status: string;
@@ -28,7 +30,6 @@ export default function UserDashboard() {
   const db = useFirestore();
   const router = useRouter();
 
-  // Community Feed: Wait for user (even anonymous) to be ready to avoid permission race conditions
   const reportsQuery = useMemoFirebase(() => {
     if (!db || authLoading || !user) return null;
     return query(
@@ -50,7 +51,6 @@ export default function UserDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 relative pb-24">
-      {/* Header */}
       <header className="p-6 pt-10 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 border-b shadow-sm">
         <div className="flex items-center space-x-3">
           <Avatar className="h-14 w-14 border-[3px] border-primary shadow-2xl rounded-2xl overflow-hidden">
@@ -74,7 +74,6 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      {/* Reports Feed */}
       <div className="flex-1 px-6 space-y-8 pt-8 overflow-y-auto">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] italic">Active Monitoring</h2>
@@ -113,14 +112,32 @@ export default function UserDashboard() {
         ) : (
           reports.map((report) => (
             <Card key={report.id} className="overflow-hidden border-none shadow-2xl rounded-[3.5rem] group active:scale-[0.98] transition-all duration-500 mb-10 bg-white hover:translate-y-[-4px]">
-              <div className="relative h-72 w-full bg-slate-100 overflow-hidden">
-                <Image 
-                  src={report.imageUrl} 
-                  alt={report.aiCategory} 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80" />
+              <div className="relative h-72 w-full bg-slate-100 overflow-hidden flex">
+                <div className={`relative h-full transition-all duration-700 ${report.status === 'Resolved' && report.resolvedImageUrl ? 'w-1/2' : 'w-full'}`}>
+                  <Image 
+                    src={report.imageUrl} 
+                    alt="Before" 
+                    fill 
+                    className="object-cover"
+                  />
+                  {report.status === 'Resolved' && report.resolvedImageUrl && (
+                    <Badge className="absolute bottom-4 left-4 bg-black/60 text-white border-none uppercase text-[7px] font-black italic">Incident</Badge>
+                  )}
+                </div>
+                {report.status === 'Resolved' && report.resolvedImageUrl && (
+                  <div className="relative h-full w-1/2 border-l-2 border-white transition-all duration-700">
+                    <Image 
+                      src={report.resolvedImageUrl} 
+                      alt="After" 
+                      fill 
+                      className="object-cover"
+                    />
+                    <Badge className="absolute bottom-4 left-4 bg-green-600/80 text-white border-none uppercase text-[7px] font-black italic flex items-center gap-1">
+                      <CheckCircle2 className="h-2 w-2" /> Cleaned
+                    </Badge>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60 pointer-events-none" />
                 <div className="absolute top-6 left-6 flex flex-col gap-3">
                   <div className="flex gap-2">
                     <Badge className="bg-white text-primary border-none font-black shadow-2xl h-8 px-5 text-[10px] uppercase italic rounded-xl">
@@ -154,7 +171,6 @@ export default function UserDashboard() {
         )}
       </div>
 
-      {/* Floating Action Button */}
       <div className="fixed bottom-10 left-0 right-0 px-6 max-w-lg mx-auto pointer-events-none">
         <div className="flex justify-center pointer-events-auto">
           <Link href="/report/new">

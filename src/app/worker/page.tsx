@@ -1,10 +1,12 @@
+
 "use client";
 
+import { useState, useRef } from "react";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, updateDoc, doc, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin, AlertCircle, Home } from "lucide-react";
+import { HardHat, LogOut, CheckCircle2, Navigation, Loader2, MapPin, AlertCircle, Home, Camera, X, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -18,29 +20,46 @@ export default function WorkerDashboard() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const jobsQuery = useMemoFirebase(() => {
-    // Wait for auth to resolve before querying
     if (!db || isUserLoading || !user) return null;
-    
-    // Simplified query: List all incidents ordered by time
-    // Filtering by status 'Pending' or 'In Progress' is done in-memory for maximum stability
     return query(collection(db, "reports"), orderBy("timestamp", "desc"));
   }, [db, isUserLoading, user?.uid]);
 
   const { data: allJobs, isLoading: loading, error } = useCollection(jobsQuery);
-
-  // Filter jobs in memory to avoid permission/index conflicts during publication
   const jobs = allJobs?.filter(job => job.status === 'Pending' || job.status === 'In Progress') || [];
+
+  const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (!db) return;
+    setIsProcessing(true);
     const docRef = doc(db, "reports", id);
-    const data = { status: newStatus };
+    const data: any = { status: newStatus };
     
+    if (newStatus === 'Resolved' && capturedImage) {
+      data.resolvedImageUrl = capturedImage;
+    }
+
     updateDoc(docRef, data)
       .then(() => {
         toast({ title: "Duty Logged", description: `Task status updated to ${newStatus}` });
+        setResolvingId(null);
+        setCapturedImage(null);
       })
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -49,6 +68,9 @@ export default function WorkerDashboard() {
           requestResourceData: data,
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsProcessing(false);
       });
   };
 
@@ -59,21 +81,6 @@ export default function WorkerDashboard() {
           <HardHat className="h-12 w-12 text-orange-600" />
         </div>
         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-orange-600 text-center animate-pulse italic">Establishing Field Session...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-white text-center space-y-8">
-        <AlertCircle className="h-16 w-16 text-red-500" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter">Sync Interrupted</h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unable to reach the sector feed.</p>
-        </div>
-        <Button variant="outline" className="rounded-2xl h-14 px-8 font-black uppercase italic border-2" onClick={() => router.push("/")}>
-          <Home className="mr-2 h-4 w-4" /> Back to selection
-        </Button>
       </div>
     );
   }
@@ -96,6 +103,8 @@ export default function WorkerDashboard() {
       </header>
 
       <main className="p-6 space-y-6 flex-1 overflow-y-auto pb-10">
+        <input type="file" accept="image/*" capture="environment" ref={fileInputRef} className="hidden" onChange={handleCapture} />
+        
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] italic text-left">Assigned Tasks</h2>
@@ -119,7 +128,7 @@ export default function WorkerDashboard() {
             </div>
           ) : (
             jobs.map((job: any) => (
-              <Card key={job.id} className="overflow-hidden border-none shadow-2xl rounded-[3rem] bg-white mb-8 group transition-all duration-500 hover:scale-[1.02]">
+              <Card key={job.id} className="overflow-hidden border-none shadow-2xl rounded-[3rem] bg-white mb-8 group transition-all duration-500 hover:scale-[1.01]">
                 <CardHeader className="p-6 bg-white border-b text-left">
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-2">
@@ -144,22 +153,66 @@ export default function WorkerDashboard() {
                     </Button>
                   </div>
                 </CardHeader>
+                
                 <div className="relative h-56 w-full bg-slate-100 overflow-hidden">
-                  <Image src={job.imageUrl} alt="Incident" fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+                  <Image src={job.imageUrl} alt="Incident" fill className="object-cover" />
+                  <div className="absolute bottom-4 left-4">
+                    <Badge className="bg-black/60 text-white border-none uppercase text-[8px] font-black italic">Reported Scene</Badge>
+                  </div>
                 </div>
-                {job.location && (
-                  <div className="p-6 bg-slate-50 border-y">
-                     <MapPreview latitude={job.location.latitude} longitude={job.location.longitude} className="h-40 rounded-[1.5rem]" />
+
+                {job.status === 'In Progress' && (
+                  <div className="p-6 bg-slate-50 border-y space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest italic">Cleanup Verification</p>
+                      {capturedImage && (
+                        <Button variant="ghost" size="sm" onClick={() => setCapturedImage(null)} className="h-6 px-2 text-red-500 text-[9px] font-black uppercase">
+                          <X className="h-3 w-3 mr-1" /> Remove Photo
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {!capturedImage ? (
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-32 rounded-2xl border-dashed border-2 flex flex-col gap-2 bg-white hover:bg-orange-50 transition-colors"
+                        onClick={() => {
+                          setResolvingId(job.id);
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        <Camera className="h-8 w-8 text-orange-500" />
+                        <span className="text-[10px] font-black uppercase text-slate-400">Capture Cleaned Site</span>
+                      </Button>
+                    ) : (
+                      <div className="relative h-48 w-full rounded-2xl overflow-hidden shadow-inner border-2 border-green-500">
+                        <Image src={capturedImage} alt="Resolved proof" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-green-500/10 flex items-center justify-center">
+                           <div className="bg-white h-12 w-12 rounded-full flex items-center justify-center shadow-2xl animate-bounce">
+                              <Check className="h-6 w-6 text-green-600" />
+                           </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
                 <CardContent className="p-6 flex gap-3 bg-white">
                   {job.status === 'Pending' ? (
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700 h-16 rounded-[1.5rem] font-black shadow-2xl text-base transition-transform active:scale-95 italic uppercase tracking-tight" onClick={() => updateStatus(job.id, "In Progress")}>
-                      START CLEARANCE
+                    <Button 
+                      className="w-full bg-orange-600 hover:bg-orange-700 h-16 rounded-[1.5rem] font-black shadow-2xl text-base transition-transform active:scale-95 italic uppercase tracking-tight" 
+                      onClick={() => updateStatus(job.id, "In Progress")}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? <Loader2 className="animate-spin" /> : "START CLEARANCE"}
                     </Button>
                   ) : (
-                    <Button className="w-full bg-green-600 hover:bg-green-700 h-16 rounded-[1.5rem] font-black shadow-2xl text-base transition-transform active:scale-95 italic uppercase tracking-tight" onClick={() => updateStatus(job.id, "Resolved")}>
-                      CONFIRM RESOLUTION
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700 h-16 rounded-[1.5rem] font-black shadow-2xl text-base transition-transform active:scale-95 italic uppercase tracking-tight" 
+                      onClick={() => updateStatus(job.id, "Resolved")}
+                      disabled={!capturedImage || isProcessing}
+                    >
+                      {isProcessing ? <Loader2 className="animate-spin" /> : capturedImage ? "CONFIRM RESOLUTION" : "PHOTO REQUIRED"}
                     </Button>
                   )}
                 </CardContent>
